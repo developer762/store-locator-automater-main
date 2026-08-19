@@ -1,0 +1,91 @@
+name: Deploy to Apps Script
+
+# Pushes the apps-script folder to the live Google Apps Script project whenever
+# main changes. Pull requests are checked but never deployed.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-script/**'
+      - 'tests/**'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
+      - '.clasp.json'
+      - '.claspignore'
+  pull_request:
+    paths:
+      - 'apps-script/**'
+      - 'wordpress/**'
+      - 'tests/**'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Version note recorded against the deployment
+        required: false
+        default: Manual deploy
+
+jobs:
+  check:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Check Apps Script and feed transformation
+        run: npm run check
+
+      - name: Check WordPress plugin syntax
+        run: find wordpress -name '*.php' -print -exec php -l {} \;
+
+  deploy:
+    name: Push to Apps Script
+    needs: check
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && vars.APPS_SCRIPT_DEPLOY_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: Restore credentials
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then
+            echo "Secret CLASPRC_JSON is not set. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+
+      - name: Write the project binding
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          if [ -f .clasp.json ]; then
+            echo "Using the committed .clasp.json"
+          elif [ -n "$SCRIPT_ID" ]; then
+            printf '{"scriptId":"%s","rootDir":"apps-script"}' "$SCRIPT_ID" > .clasp.json
+          else
+            echo "No .clasp.json in the repo and no SCRIPT_ID secret. Add one of the two."
+            exit 1
+          fi
+
+      - name: Push
+        run: clasp push --force
+
+      - name: Create a version
+        run: |
+          NOTE="${{ github.event.inputs.description || github.event.head_commit.message }}"
+          clasp version "${NOTE:0:180}"

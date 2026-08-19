@@ -1,0 +1,18 @@
+# clasp credentials — this file is an OAuth token, never commit it
+.clasprc.json
+*.clasprc.json
+
+# Local clasp binding, uncomment the next line if this repo is public
+# .clasp.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scratch
+*.local
+/tmp/

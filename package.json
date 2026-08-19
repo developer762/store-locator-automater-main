@@ -1,0 +1,11 @@
+{
+  "name": "store-locator-automater",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/generate-feed-cli.js",
+    "build-feed": "node scripts/generate-feed-cli.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node tests/syntax-check.js && node --test tests/*.test.js"
+  }
+}

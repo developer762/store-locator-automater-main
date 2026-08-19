@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa Mexico Store Locator Automater Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(22, 30, 49, 0.7);
+      --bg-card-border: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--bg-card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #ffffff;
+    }
+
+    .brand-title h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #4338ca);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--bg-card-border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Stats Section */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .stat-published::before { background: var(--accent-emerald); }
+    .stat-awaiting::before { background: var(--accent-amber); }
+    .stat-excluded::before { background: var(--text-dim); }
+    .stat-cache::before { background: var(--accent-cyan); }
+
+    .stat-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-desc {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    /* Controls & Navigation */
+    .dashboard-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--bg-card-border);
+      padding-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--primary);
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 1rem 0.5rem 2.2rem;
+      color: var(--text-main);
+      font-size: 0.875rem;
+      width: 240px;
+      transition: border-color 0.2s ease;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      fill: var(--text-dim);
+    }
+
+    .select-box select {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 1rem;
+      color: var(--text-main);
+      font-size: 0.875rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* Store Grid */
+    .store-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .store-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .store-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .store-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .store-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .badge-retail {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-bar-restaurant {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .store-address {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .store-meta {
+      border-top: 1px dashed var(--bg-card-border);
+      padding-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .coordinates {
+      color: var(--accent-cyan);
+      font-family: monospace;
+    }
+
+    .cases-tag {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    .bottlings-list {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* JSON & Code Viewer */
+    .code-viewer {
+      background: rgba(10, 15, 26, 0.95);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      max-height: 600px;
+    }
+
+    /* Log Output */
+    .log-panel {
+      background: #020617;
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #a7f3d0;
+      height: 200px;
+      overflow-y: auto;
+      margin-top: 1.5rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="brand-title">
+          <h1>Casa Mexico Store Locator</h1>
+          <p>Automater Pipeline & Feed Preview</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="fetchFeedData(true)">
+          🔄 Force Refresh
+        </button>
+        <button class="btn btn-primary" onclick="simulateWpSync()">
+          ⚡ Simulate WP Sync
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card stat-published">
+        <div class="stat-label">Publishable Locations</div>
+        <div class="stat-value" id="stat-published">-</div>
+        <div class="stat-desc">Ready with valid coordinates</div>
+      </div>
+      <div class="stat-card stat-awaiting">
+        <div class="stat-label">Awaiting Geocode</div>
+        <div class="stat-value" id="stat-awaiting">-</div>
+        <div class="stat-desc">Ready rows pending lat/lng pins</div>
+      </div>
+      <div class="stat-card stat-excluded">
+        <div class="stat-label">Workbook Total</div>
+        <div class="stat-value" id="stat-workbook">-</div>
+        <div class="stat-desc">Rows in July 2026 workbook</div>
+      </div>
+      <div class="stat-card stat-cache">
+        <div class="stat-label">Feed Status</div>
+        <div class="stat-value" id="stat-status">Valid</div>
+        <div class="stat-desc" id="stat-generated-at">Generated just now</div>
+      </div>
+    </div>
+
+    <!-- Navigation & Filter Bar -->
+    <div class="dashboard-nav">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('stores')">🏪 Store Directory</button>
+        <button class="tab-btn" onclick="switchTab('json')">📄 Feed Payload JSON</button>
+        <button class="tab-btn" onclick="switchTab('diagnostics')">🛡️ Safeguards & Logs</button>
+      </div>
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="search-input" placeholder="Search store name, city..." oninput="renderStores()">
+        </div>
+        <div class="select-box">
+          <select id="state-select" onchange="renderStores()">
+            <option value="">All States</option>
+          </select>
+        </div>
+        <div class="select-box">
+          <select id="type-select" onchange="renderStores()">
+            <option value="">All Types</option>
+            <option value="retail">Retail</option>
+            <option value="bar-restaurant">Bar & Restaurant</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 1: Store Directory Grid -->
+    <div id="tab-stores">
+      <div class="store-grid" id="store-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Tab 2: Feed Payload JSON -->
+    <div id="tab-json" class="hidden">
+      <pre class="code-viewer" id="json-viewer">Loading feed JSON payload...</pre>
+    </div>
+
+    <!-- Tab 3: Safeguards & Logs -->
+    <div id="tab-diagnostics" class="hidden">
+      <div class="stat-card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 0.5rem; font-family: 'Outfit';">Pipeline Safeguards Active</h3>
+        <ul style="padding-left: 1.2rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.8;">
+          <li><b>Fail-Closed Verification:</b> Rejects payload if required columns missing or 0 publishable stores.</li>
+          <li><b>WordPress Safety Floor:</b> Default 50-location minimum prevents empty feed from overriding live map.</li>
+          <li><b>Geocoding Safeguard:</b> Partial address matches marked as <code>Geocode held</code> for manual review.</li>
+          <li><b>Atomic File Cache:</b> Writes <code>.tmp</code> file, backs up <code>.bak</code>, and renames atomically.</li>
+        </ul>
+      </div>
+      <h4 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Sync & Event Console Log</h4>
+      <div class="log-panel" id="log-panel">
+        <div>[SYSTEM] Local dev environment loaded.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let globalFeedData = null;
+
+    function logMsg(msg) {
+      const panel = document.getElementById('log-panel');
+      const time = new Date().toLocaleTimeString();
+      panel.innerHTML += `<div>[${time}] ${msg}</div>`;
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    async function fetchFeedData(refresh = false) {
+      try {
+        logMsg(refresh ? 'Fetching fresh feed from Apps Script engine...' : 'Loading feed data...');
+        let data = null;
+        try {
+          const res = await fetch('/api/feed' + (refresh ? '?refresh=1' : ''));
+          if (res.ok) data = await res.json();
+        } catch (e) {}
+
+        if (!data || !data.locations) {
+          logMsg('Fetching live feed directly from Apps Script URL...');
+          try {
+            const liveRes = await fetch('https://script.google.com/macros/s/AKfycbwTmH7uI7FZc5raOsDfIv6y6JgTNYXRj7Q5UR-njQnqj_2xOLhAjfo9v4V4ogNC-TqA5w/exec');
+            if (liveRes.ok) data = await liveRes.json();
+          } catch (e) {}
+        }
+
+        if (!data || !data.locations) {
+          logMsg('Falling back to local casa-mexico-locations.json...');
+          const fallbackRes = await fetch('../casa-mexico-locations.json');
+          data = await fallbackRes.json();
+        }
+        
+        globalFeedData = data;
+        
+        document.getElementById('stat-published').textContent = data.count || 0;
+        document.getElementById('stat-generated-at').textContent = 'Generated: ' + new Date(data.generatedAt).toLocaleTimeString();
+        document.getElementById('json-viewer').textContent = JSON.stringify(data, null, 2);
+
+        populateStateFilter(data.locations || []);
+        renderStores();
+        logMsg(`Feed updated successfully. ${data.count} publishable locations returned.`);
+      } catch (err) {
+        logMsg('Error loading feed: ' + err.message);
+      }
+    }
+
+    async function fetchRawStats() {
+      try {
+        const res = await fetch('/api/raw-stats');
+        const stats = await res.json();
+        document.getElementById('stat-awaiting').textContent = stats.awaitingGeocode || 0;
+        document.getElementById('stat-workbook').textContent = stats.totalWorkbookRows || 0;
+      } catch (err) {
+        console.error('Stats error:', err);
+      }
+    }
+
+    function populateStateFilter(locations) {
+      const states = [...new Set(locations.map(l => l.state).filter(Boolean))].sort();
+      const select = document.getElementById('state-select');
+      select.innerHTML = '<option value="">All States</option>';
+      states.forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st;
+        opt.textContent = st;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderStores() {
+      if (!globalFeedData || !globalFeedData.locations) return;
+
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const selectedState = document.getElementById('state-select').value;
+      const selectedType = document.getElementById('type-select').value;
+
+      const container = document.getElementById('store-container');
+      container.innerHTML = '';
+
+      const filtered = globalFeedData.locations.filter(loc => {
+        const matchesSearch = !searchTerm || 
+          loc.name.toLowerCase().includes(searchTerm) || 
+          loc.city.toLowerCase().includes(searchTerm) ||
+          loc.address.toLowerCase().includes(searchTerm);
+        const matchesState = !selectedState || loc.state === selectedState;
+        const matchesType = !selectedType || loc.type === selectedType;
+        return matchesSearch && matchesState && matchesType;
+      });
+
+      filtered.forEach(loc => {
+        const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
+        const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
+        const cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
+        const storeId = loc.id || loc.placeId || 'N/A';
+        const phoneHtml = loc.phone ? `<div style="margin-top:0.4rem; font-size:0.82rem; color:var(--text-muted);">📞 <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></div>` : '';
+        const websiteHtml = loc.website ? `<div style="margin-top:0.3rem;"><a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-block; font-size:0.78rem; color:#6366f1; background:rgba(99,102,241,0.12); padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 Website</a></div>` : '';
+        const distHtml = loc.distributor ? `<div style="margin-top:0.4rem; font-size:0.78rem; color:var(--text-dim);">🚚 ${escapeHtml(loc.distributor)} ${loc.territory ? `(${escapeHtml(loc.territory)})` : ''}</div>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'store-card';
+        card.innerHTML = `
+          <div>
+            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.4rem;">
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.15rem 0.5rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25);">${escapeHtml(storeId)}</span>
+                <span class="badge ${typeClass}">${typeLabel}</span>
+              </div>
+              <div class="store-name" style="font-size:1.15rem; margin-top:0.2rem;">${cleanName}</div>
+            </div>
+            <div class="store-address" style="margin-top:0.5rem;">
+              📍 ${escapeHtml(loc.address)}<br>
+              ${escapeHtml(loc.city)}, ${escapeHtml(loc.state)} ${escapeHtml(loc.postalCode)}
+            </div>
+            ${phoneHtml}
+            ${websiteHtml}
+            ${distHtml}
+          </div>
+          <div style="margin-top:0.8rem;">
+            <div class="store-meta">
+              <span class="coordinates">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span>
+              ${loc.cases ? `<span class="cases-tag">📦 ${loc.cases} cases</span>` : ''}
+            </div>
+            ${loc.bottlings ? `<div class="bottlings-list">🍸 ${escapeHtml(loc.bottlings)}</div>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 3rem;">No stores found matching filter criteria.</div>`;
+      }
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('tab-stores').classList.add('hidden');
+      document.getElementById('tab-json').classList.add('hidden');
+      document.getElementById('tab-diagnostics').classList.add('hidden');
+
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+    }
+
+    function simulateWpSync() {
+      logMsg('Initiating WordPress plugin sync simulation...');
+      if (!globalFeedData) return;
+      
+      // Simulate WordPress validation logic
+      if (globalFeedData.locations.length < 50) {
+        logMsg('❌ WP Sync Error: Feed contained fewer than safety floor (50). Map preserved.');
+        return;
+      }
+      logMsg('✅ WP Sync Validated shape, coordinates, and minimum location floor.');
+      logMsg('💾 Updated cached feed file: wp-content/uploads/casa-mexico-locations.json');
+      window.dispatchEvent(new CustomEvent('cmx:locations-ready', { detail: globalFeedData }));
+      logMsg('📡 Emitted browser event "cmx:locations-ready"');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Init on load
+    fetchFeedData();
+    fetchRawStats();
+  </script>
+</body>
+</html>

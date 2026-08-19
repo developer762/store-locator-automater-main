@@ -1,0 +1,4 @@
+# Paths are evaluated inside the apps-script rootDir.
+**/**
+!*.gs
+!appsscript.json
