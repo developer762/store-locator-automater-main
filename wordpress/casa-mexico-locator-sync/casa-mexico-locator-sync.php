@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Casa Mexico Store Locator Sync
  * Description: Caches the Casa Mexico Google Sheets locator feed and exposes it to the front end.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Casa Mexico
  * License: GPL-2.0-or-later
  */
@@ -22,8 +22,13 @@ add_filter('cron_schedules', 'cmx_locator_cron_schedules');
 add_action(CMX_LOCATOR_CRON, 'cmx_locator_sync');
 add_action('admin_menu', 'cmx_locator_admin_menu');
 add_action('admin_init', 'cmx_locator_register_settings');
-add_action('admin_post_cmx_locator_sync_now', 'cmx_locator_sync_now');
+add_action('admin_init', 'cmx_locator_ensure_scheduled');
+add_action('init', 'cmx_locator_ensure_scheduled');
+add_action('rest_api_init', 'cmx_locator_register_rest_routes');
+add_action('admin_post_cmx_locator_save_and_sync', 'cmx_locator_save_and_sync');
+add_action('admin_post_cmx_locator_sync_now', 'cmx_locator_save_and_sync');
 add_action('wp_enqueue_scripts', 'cmx_locator_enqueue_config');
+add_shortcode('casa_mexico_locator', 'cmx_locator_shortcode');
 
 function cmx_locator_defaults()
 {
@@ -38,13 +43,23 @@ function cmx_locator_defaults()
 
 function cmx_locator_options()
 {
+    wp_cache_delete(CMX_LOCATOR_OPTION, 'options');
     return wp_parse_args(get_option(CMX_LOCATOR_OPTION, array()), cmx_locator_defaults());
+}
+
+function cmx_locator_ensure_scheduled()
+{
+    if (!wp_next_scheduled(CMX_LOCATOR_CRON)) {
+        wp_schedule_event(time() + 60, 'cmx_fifteen_minutes', CMX_LOCATOR_CRON);
+    }
 }
 
 function cmx_locator_activate()
 {
-    if (!wp_next_scheduled(CMX_LOCATOR_CRON)) {
-        wp_schedule_event(time() + 60, 'cmx_fifteen_minutes', CMX_LOCATOR_CRON);
+    cmx_locator_ensure_scheduled();
+    $options = cmx_locator_options();
+    if (!empty($options['endpoint'])) {
+        cmx_locator_sync();
     }
 }
 
@@ -67,13 +82,25 @@ function cmx_locator_sync()
     $options = cmx_locator_options();
     $endpoint = trim($options['endpoint']);
     if (!$endpoint) {
-        return new WP_Error('missing_endpoint', 'The Apps Script endpoint is not configured.');
+        return cmx_locator_record_error('The Apps Script endpoint is not configured.');
     }
 
-    $response = wp_remote_get($endpoint, array(
-        'timeout' => 25,
-        'redirection' => 3,
-        'headers' => array('Accept' => 'application/json'),
+    $sync_url = add_query_arg(array(
+        'nocache' => '1',
+        'fresh' => '1',
+        '_t' => time(),
+    ), $endpoint);
+
+    $response = wp_remote_get($sync_url, array(
+        'timeout' => 45,
+        'redirection' => 10,
+        'sslverify' => false,
+        'user-agent' => 'WordPress/CasaMexicoLocatorSync-1.1.0; ' . get_bloginfo('url'),
+        'headers' => array(
+            'Accept' => 'application/json',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+        ),
     ));
     if (is_wp_error($response)) {
         return cmx_locator_record_error($response->get_error_message());
@@ -81,10 +108,15 @@ function cmx_locator_sync()
 
     $status = wp_remote_retrieve_response_code($response);
     if ($status !== 200) {
-        return cmx_locator_record_error('Feed returned HTTP ' . $status . '.');
+        return cmx_locator_record_error('Feed returned HTTP ' . $status . ' from Apps Script endpoint.');
     }
 
-    $payload = json_decode(wp_remote_retrieve_body($response), true);
+    $body = wp_remote_retrieve_body($response);
+    $payload = json_decode($body, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($payload)) {
+        return cmx_locator_record_error('Feed response is not valid JSON.');
+    }
+
     $validated = cmx_locator_validate_payload($payload, (int) $options['minimum_locations']);
     if (is_wp_error($validated)) {
         return cmx_locator_record_error($validated->get_error_message());
@@ -98,6 +130,10 @@ function cmx_locator_sync()
     $path = trailingslashit($upload['basedir']) . CMX_LOCATOR_FILENAME;
     $backup = $path . '.bak';
     $temporary = $path . '.tmp';
+
+    $payload['locations'] = $validated;
+    $payload['count'] = count($validated);
+
     $json = wp_json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if ($json === false || file_put_contents($temporary, $json, LOCK_EX) === false) {
         return cmx_locator_record_error('Could not write the temporary locator feed.');
@@ -115,7 +151,7 @@ function cmx_locator_sync()
     $options['last_sync_at'] = gmdate('c');
     $options['last_count'] = count($validated);
     $options['last_error'] = '';
-    update_option(CMX_LOCATOR_OPTION, $options, false);
+    update_option(CMX_LOCATOR_OPTION, $options);
     do_action('cmx_locator_sync_complete', $payload, $path);
 
     return count($validated);
@@ -126,31 +162,38 @@ function cmx_locator_validate_payload($payload, $minimum)
     if (!is_array($payload) || !empty($payload['error']) || !isset($payload['locations']) || !is_array($payload['locations'])) {
         return new WP_Error('invalid_payload', 'The endpoint did not return a valid locator payload.');
     }
-    if (isset($payload['count']) && (int) $payload['count'] !== count($payload['locations'])) {
-        return new WP_Error('count_mismatch', 'The feed count does not match its locations array.');
-    }
-    if (count($payload['locations']) < max(1, $minimum)) {
-        return new WP_Error('below_floor', 'The feed contained fewer than ' . max(1, $minimum) . ' locations. The existing map was preserved.');
+
+    $valid_locations = array();
+    foreach ($payload['locations'] as $index => $location) {
+        if (!is_array($location) || empty($location['name'])) {
+            continue;
+        }
+        if (empty($location['address']) && empty($location['city'])) {
+            continue;
+        }
+        $lat_raw = isset($location['latitude']) ? $location['latitude'] : 0;
+        $lng_raw = isset($location['longitude']) ? $location['longitude'] : 0;
+        $latitude = filter_var($lat_raw, FILTER_VALIDATE_FLOAT);
+        $longitude = filter_var($lng_raw, FILTER_VALIDATE_FLOAT);
+
+        if ($latitude === false || $longitude === false || $latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            continue;
+        }
+        $valid_locations[] = $location;
     }
 
-    foreach ($payload['locations'] as $index => $location) {
-        if (!is_array($location) || empty($location['name']) || empty($location['address'])) {
-            return new WP_Error('invalid_location', 'Location ' . ($index + 1) . ' is missing its name or address.');
-        }
-        $latitude = isset($location['latitude']) ? filter_var($location['latitude'], FILTER_VALIDATE_FLOAT) : false;
-        $longitude = isset($location['longitude']) ? filter_var($location['longitude'], FILTER_VALIDATE_FLOAT) : false;
-        if ($latitude === false || $longitude === false || $latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
-            return new WP_Error('invalid_coordinates', 'Location ' . ($index + 1) . ' has invalid coordinates.');
-        }
+    if (count($valid_locations) < max(1, $minimum)) {
+        return new WP_Error('below_floor', sprintf('The feed contained only %d valid locations (fewer than required minimum of %d). Existing map preserved.', count($valid_locations), max(1, $minimum)));
     }
-    return $payload['locations'];
+
+    return $valid_locations;
 }
 
 function cmx_locator_record_error($message)
 {
     $options = cmx_locator_options();
     $options['last_error'] = sanitize_text_field($message);
-    update_option(CMX_LOCATOR_OPTION, $options, false);
+    update_option(CMX_LOCATOR_OPTION, $options);
     error_log('Casa Mexico locator sync: ' . $message);
     return new WP_Error('cmx_locator_sync_failed', $message);
 }
@@ -161,6 +204,66 @@ function cmx_locator_feed_url()
     return trailingslashit($upload['baseurl']) . CMX_LOCATOR_FILENAME;
 }
 
+function cmx_locator_feed_path()
+{
+    $upload = wp_upload_dir();
+    return trailingslashit($upload['basedir']) . CMX_LOCATOR_FILENAME;
+}
+
+function cmx_locator_register_rest_routes()
+{
+    register_rest_route('cmx-locator/v1', '/feed', array(
+        'methods' => 'GET',
+        'callback' => 'cmx_locator_rest_get_feed',
+        'permission_callback' => '__return_true',
+    ));
+
+    register_rest_route('cmx-locator/v1', '/sync', array(
+        'methods' => array('GET', 'POST'),
+        'callback' => 'cmx_locator_rest_trigger_sync',
+        'permission_callback' => 'cmx_locator_rest_sync_permissions',
+    ));
+}
+
+function cmx_locator_rest_get_feed()
+{
+    $path = cmx_locator_feed_path();
+    if (file_exists($path)) {
+        $content = file_get_contents($path);
+        $data = json_decode($content, true);
+        if ($data) {
+            return rest_ensure_response($data);
+        }
+    }
+    return new WP_Error('no_feed', 'Locator feed JSON file not found.', array('status' => 404));
+}
+
+function cmx_locator_rest_sync_permissions($request)
+{
+    if (current_user_can('manage_options')) {
+        return true;
+    }
+    $options = cmx_locator_options();
+    $token_param = $request->get_param('token');
+    if (!empty($token_param) && !empty($options['endpoint']) && strpos($options['endpoint'], $token_param) !== false) {
+        return true;
+    }
+    return new WP_Error('rest_forbidden', 'Unauthorized sync request.', array('status' => 401));
+}
+
+function cmx_locator_rest_trigger_sync($request)
+{
+    $result = cmx_locator_sync();
+    if (is_wp_error($result)) {
+        return new WP_Error('sync_failed', $result->get_error_message(), array('status' => 500));
+    }
+    return rest_ensure_response(array(
+        'success' => true,
+        'message' => 'Locator feed synchronized successfully.',
+        'count' => $result,
+    ));
+}
+
 function cmx_locator_enqueue_config()
 {
     $options = cmx_locator_options();
@@ -168,14 +271,146 @@ function cmx_locator_enqueue_config()
         'cmx-locator-feed',
         plugins_url('assets/locator-feed.js', __FILE__),
         array(),
-        '1.0.0',
+        '1.1.0',
         true
     );
     wp_localize_script('cmx-locator-feed', 'CMX_LOCATOR', array(
         'url' => add_query_arg('v', rawurlencode((string) $options['last_sync_at']), cmx_locator_feed_url()),
+        'restUrl' => esc_url_raw(rest_url('cmx-locator/v1/feed')),
         'updatedAt' => $options['last_sync_at'],
         'count' => (int) $options['last_count'],
     ));
+}
+
+function cmx_locator_enqueue_shortcode_assets()
+{
+    cmx_locator_enqueue_config();
+
+    wp_enqueue_style(
+        'leaflet',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+        array(),
+        '1.9.4'
+    );
+
+    wp_enqueue_script(
+        'leaflet',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+        array(),
+        '1.9.4',
+        true
+    );
+
+    wp_enqueue_style(
+        'cmx-locator-map',
+        plugins_url('assets/locator-map.css', __FILE__),
+        array('leaflet'),
+        '1.5.0'
+    );
+
+    wp_enqueue_script(
+        'cmx-locator-map',
+        plugins_url('assets/locator-map.js', __FILE__),
+        array('leaflet', 'cmx-locator-feed'),
+        '1.5.0',
+        true
+    );
+}
+
+function cmx_locator_shortcode($atts = array())
+{
+    cmx_locator_enqueue_shortcode_assets();
+
+    ob_start();
+    ?>
+    <div class="cmx-locator-wrap">
+        <div class="cmx-locator-controls">
+            <div class="cmx-controls-top">
+                <div class="cmx-search-box">
+                    <svg class="cmx-search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <input type="text" id="cmx-search-input" class="cmx-search-input" placeholder="Search store name, city, address, product...">
+                </div>
+                <div class="cmx-view-toggle">
+                    <button type="button" id="cmx-view-map-btn" class="cmx-toggle-btn cmx-active" title="Map & Cards View">🗺️ Map View</button>
+                    <button type="button" id="cmx-view-sales-btn" class="cmx-toggle-btn" title="Sales Data Analytics">📊 Sales Data</button>
+                    <button type="button" id="cmx-view-table-btn" class="cmx-toggle-btn" title="Data Grid Table">📋 Data Table</button>
+                </div>
+            </div>
+            <div class="cmx-controls-bottom">
+                <div class="cmx-filter-group">
+                    <select id="cmx-tab-select" class="cmx-select cmx-select-tab">
+                        <option value="">All Sheet Tabs</option>
+                    </select>
+                    <select id="cmx-state-select" class="cmx-select cmx-select-state">
+                        <option value="">All States</option>
+                    </select>
+                    <select id="cmx-type-select" class="cmx-select cmx-select-type">
+                        <option value="">All Types</option>
+                        <option value="retail">Retail</option>
+                        <option value="bar-restaurant">Bar & Restaurant</option>
+                    </select>
+                    <select id="cmx-sort-select" class="cmx-select cmx-select-sort">
+                        <option value="name-asc">Sort: Name (A-Z)</option>
+                        <option value="name-desc">Sort: Name (Z-A)</option>
+                        <option value="cases-desc">Sort: Cases (High to Low)</option>
+                        <option value="city-asc">Sort: City (A-Z)</option>
+                    </select>
+                </div>
+                <div id="cmx-count-badge" class="cmx-count-badge">Loading stores...</div>
+            </div>
+        </div>
+        <div id="cmx-split-view" class="cmx-locator-body">
+            <div class="cmx-map-container">
+                <div id="cmx-map-canvas"></div>
+            </div>
+            <div class="cmx-sidebar">
+                <div id="cmx-sidebar-list">
+                    <div class="cmx-no-results">Loading Casa Mexico locations...</div>
+                </div>
+            </div>
+        </div>
+        <div id="cmx-sales-view" class="cmx-sales-wrap" style="display: none;">
+            <div class="cmx-sales-metrics">
+                <div class="cmx-metric-card">
+                    <div class="cmx-metric-label">Total Volume</div>
+                    <div class="cmx-metric-value" id="cmx-sales-vol">-</div>
+                    <div class="cmx-metric-sub">Cases across all territories</div>
+                </div>
+                <div class="cmx-metric-card">
+                    <div class="cmx-metric-label">Top Product</div>
+                    <div class="cmx-metric-value" id="cmx-sales-top-prod">-</div>
+                    <div class="cmx-metric-sub">Highest volume bottling</div>
+                </div>
+                <div class="cmx-metric-card">
+                    <div class="cmx-metric-label">Active Markets</div>
+                    <div class="cmx-metric-value" id="cmx-sales-markets">-</div>
+                    <div class="cmx-metric-sub">States & regional territories</div>
+                </div>
+            </div>
+            <div id="cmx-sales-breakdown" class="cmx-sales-grid"></div>
+        </div>
+        <div id="cmx-table-view" class="cmx-table-wrap" style="display: none;">
+            <table class="cmx-data-table">
+                <thead>
+                    <tr>
+                        <th>Store / Retailer Name</th>
+                        <th>Address</th>
+                        <th>City / State</th>
+                        <th>Type</th>
+                        <th>Products Stocked</th>
+                        <th>Cases</th>
+                        <th>Sheet Tab</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cmx-table-body">
+                    <tr><td colspan="8" class="cmx-no-results">Loading data table...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 
 function cmx_locator_admin_menu()
@@ -204,15 +439,27 @@ function cmx_locator_sanitize_options($input)
     return $current;
 }
 
-function cmx_locator_sync_now()
+function cmx_locator_save_and_sync()
 {
     if (!current_user_can('manage_options')) {
         wp_die('You do not have permission to sync the locator.');
     }
-    check_admin_referer('cmx_locator_sync_now');
+    check_admin_referer('cmx_locator_save_and_sync');
+
+    $options = cmx_locator_options();
+    if (isset($_POST['endpoint'])) {
+        $options['endpoint'] = esc_url_raw(trim($_POST['endpoint']));
+    }
+    if (isset($_POST['minimum_locations'])) {
+        $options['minimum_locations'] = max(1, absint($_POST['minimum_locations']));
+    }
+    update_option(CMX_LOCATOR_OPTION, $options);
+    wp_cache_delete(CMX_LOCATOR_OPTION, 'options');
+
     $result = cmx_locator_sync();
     $status = is_wp_error($result) ? 'error' : 'success';
-    wp_safe_redirect(add_query_arg('cmx_sync', $status, admin_url('options-general.php?page=cmx-locator-sync')));
+    $count = is_wp_error($result) ? 0 : (int)$result;
+    wp_safe_redirect(add_query_arg(array('cmx_sync' => $status, 'cmx_count' => $count), admin_url('options-general.php?page=cmx-locator-sync')));
     exit;
 }
 
@@ -222,38 +469,80 @@ function cmx_locator_settings_page()
         return;
     }
     $options = cmx_locator_options();
+    $next_cron = wp_next_scheduled(CMX_LOCATOR_CRON);
+    $published_count = isset($_GET['cmx_count']) ? (int)$_GET['cmx_count'] : (int)$options['last_count'];
     ?>
     <div class="wrap">
         <h1>Casa Mexico Store Locator Sync</h1>
         <?php if (isset($_GET['cmx_sync'])) : ?>
             <div class="notice notice-<?php echo $_GET['cmx_sync'] === 'success' ? 'success' : 'error'; ?> is-dismissible"><p>
-                <?php echo $_GET['cmx_sync'] === 'success' ? 'Locator sync completed.' : esc_html($options['last_error']); ?>
+                <?php echo $_GET['cmx_sync'] === 'success' ? sprintf('Locator sync completed successfully! (%d stores published)', $published_count) : 'Sync failed: ' . esc_html(!empty($options['last_error']) ? $options['last_error'] : 'Could not fetch Apps Script payload. Please ensure Web App deployment access is set to "Anyone".'); ?>
             </p></div>
         <?php endif; ?>
-        <form method="post" action="options.php">
-            <?php settings_fields('cmx_locator_sync'); ?>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="cmx_locator_save_and_sync">
+            <?php wp_nonce_field('cmx_locator_save_and_sync'); ?>
+            
             <table class="form-table" role="presentation">
                 <tr>
-                    <th scope="row"><label for="cmx-endpoint">Apps Script endpoint</label></th>
-                    <td><input id="cmx-endpoint" class="large-text" type="url" name="<?php echo esc_attr(CMX_LOCATOR_OPTION); ?>[endpoint]" value="<?php echo esc_attr($options['endpoint']); ?>" placeholder="https://script.google.com/macros/s/.../exec"></td>
+                    <th scope="row"><label for="cmx-endpoint">Apps Script Web App Endpoint</label></th>
+                    <td>
+                        <input id="cmx-endpoint" class="large-text" type="url" name="endpoint" value="<?php echo esc_attr($options['endpoint']); ?>" placeholder="https://script.google.com/macros/s/.../exec" required>
+                        <p class="description">URL generated when deploying Google Apps Script Web App (Must end with <code>/exec</code>).</p>
+                    </td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="cmx-minimum">Minimum location count</label></th>
-                    <td><input id="cmx-minimum" type="number" min="1" name="<?php echo esc_attr(CMX_LOCATOR_OPTION); ?>[minimum_locations]" value="<?php echo esc_attr($options['minimum_locations']); ?>"><p class="description">A smaller response is rejected so a broken sheet cannot empty the map.</p></td>
+                    <th scope="row"><label for="cmx-minimum">Minimum location count safety floor</label></th>
+                    <td>
+                        <input id="cmx-minimum" type="number" min="1" name="minimum_locations" value="<?php echo esc_attr($options['minimum_locations']); ?>">
+                        <p class="description">A feed with fewer valid locations than this number will be rejected to protect the live map from accidental sheet wipes.</p>
+                    </td>
                 </tr>
             </table>
-            <?php submit_button(); ?>
+
+            <p class="submit">
+                <input type="submit" name="submit" id="submit" class="button button-primary" value="Save & Sync Now">
+            </p>
         </form>
-        <h2>Status</h2>
-        <p><strong>Last successful sync:</strong> <?php echo esc_html($options['last_sync_at'] ?: 'Never'); ?></p>
-        <p><strong>Published locations:</strong> <?php echo esc_html((string) $options['last_count']); ?></p>
-        <?php if ($options['last_error']) : ?><p><strong>Last error:</strong> <?php echo esc_html($options['last_error']); ?></p><?php endif; ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <input type="hidden" name="action" value="cmx_locator_sync_now">
-            <?php wp_nonce_field('cmx_locator_sync_now'); ?>
-            <?php submit_button('Sync now', 'secondary', 'submit', false); ?>
-        </form>
-        <p><strong>Cached feed URL:</strong> <code><?php echo esc_html(cmx_locator_feed_url()); ?></code></p>
+
+        <h2>Sync Status & Health Diagnostics</h2>
+        <table class="widefat striped" style="max-width: 800px; margin-bottom: 20px;">
+            <tbody>
+                <tr>
+                    <td><strong>Automatic Sync Cron:</strong></td>
+                    <td>
+                        <?php if ($next_cron) : ?>
+                            <span style="color: green; font-weight: bold;">Active</span> (Next run in <?php echo human_time_diff($next_cron); ?>)
+                        <?php else : ?>
+                            <span style="color: orange; font-weight: bold;">Auto-Healing</span> (Will reschedule on next page request)
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Last Successful Sync:</strong></td>
+                    <td><?php echo esc_html($options['last_sync_at'] ? date('Y-m-d H:i:s T', strtotime($options['last_sync_at'])) : 'Never'); ?></td>
+                </tr>
+                <tr>
+                    <td><strong>Published Store Count:</strong></td>
+                    <td><strong style="color: #2271b1; font-size: 1.1em;"><?php echo esc_html((string) $options['last_count']); ?> stores</strong></td>
+                </tr>
+                <?php if ($options['last_error']) : ?>
+                <tr>
+                    <td><strong style="color: #d63638;">Last Reported Error:</strong></td>
+                    <td><code style="color: #d63638;"><?php echo esc_html($options['last_error']); ?></code></td>
+                </tr>
+                <?php endif; ?>
+                <tr>
+                    <td><strong>Cached JSON Feed URL:</strong></td>
+                    <td><code><a href="<?php echo esc_url(cmx_locator_feed_url()); ?>" target="_blank"><?php echo esc_html(cmx_locator_feed_url()); ?></a></code></td>
+                </tr>
+                <tr>
+                    <td><strong>REST API Feed Endpoint:</strong></td>
+                    <td><code><a href="<?php echo esc_url(rest_url('cmx-locator/v1/feed')); ?>" target="_blank"><?php echo esc_html(rest_url('cmx-locator/v1/feed')); ?></a></code></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
     <?php
 }

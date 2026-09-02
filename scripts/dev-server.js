@@ -128,11 +128,14 @@ const server = http.createServer((req, res) => {
   // API Endpoint: /api/feed or /exec (Apps Script feed simulator)
   if (pathname === '/api/feed' || pathname === '/exec') {
     try {
-      const refresh = parsedUrl.query.refresh === '1';
+      const refresh = parsedUrl.query.refresh === '1' || parsedUrl.query.nocache === '1' || parsedUrl.query.fresh === '1';
       if (!cachedPayload || refresh) {
         generateFeedPayload();
       }
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      });
       res.end(JSON.stringify(cachedPayload, null, 2));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });

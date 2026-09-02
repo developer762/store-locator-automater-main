@@ -35,7 +35,7 @@ the `Match Confidence` column for manual review and do not reach the map.
 ## Failure safeguards
 
 - Apps Script fails closed if a required header is missing or zero stores pass.
-- The endpoint is cached for five minutes to reduce Sheet reads.
+- The endpoint is cached for five minutes to reduce Sheet reads, but immediately bypasses cache when `nocache=1` / `fresh=1` is sent (such as when clicking **Sync now** in WordPress).
 - WordPress validates the payload shape, reported count, every coordinate, and
   every required name/address.
 - The default 50-store floor prevents a truncated sheet from emptying the map.

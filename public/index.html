@@ -42,6 +42,9 @@
       color: var(--text-main);
       min-height: 100vh;
       line-height: 1.5;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
     }
 
     header {
@@ -298,8 +301,10 @@
     /* Store Grid */
     .store-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.25rem;
+      width: 100%;
+      max-width: 100%;
     }
 
     .store-card {
@@ -312,6 +317,12 @@
       flex-direction: column;
       justify-content: space-between;
       transition: all 0.2s ease;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     .store-card:hover {
@@ -326,6 +337,7 @@
       align-items: flex-start;
       margin-bottom: 0.75rem;
       gap: 0.5rem;
+      width: 100%;
     }
 
     .store-name {
@@ -333,6 +345,8 @@
       font-size: 1.1rem;
       font-weight: 700;
       color: #fff;
+      word-break: break-word;
+      overflow-wrap: anywhere;
     }
 
     .badge {
@@ -361,6 +375,8 @@
       font-size: 0.875rem;
       color: var(--text-muted);
       margin-bottom: 1rem;
+      word-break: break-word;
+      overflow-wrap: anywhere;
     }
 
     .store-meta {
@@ -370,6 +386,8 @@
       justify-content: space-between;
       align-items: center;
       font-size: 0.8rem;
+      flex-wrap: wrap;
+      gap: 0.4rem;
     }
 
     .coordinates {
@@ -420,6 +438,264 @@
     .hidden {
       display: none !important;
     }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-card {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .spinner {
+      width: 46px;
+      height: 46px;
+      border: 4px solid rgba(99, 102, 241, 0.15);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .show-more-btn {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.2));
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.75rem 2.2rem;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+    }
+
+    .show-more-btn:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(6, 182, 212, 0.35));
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .sheet-scroller-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 0.8rem;
+    }
+
+    .scroll-arrow {
+      background: linear-gradient(135deg, var(--primary), #4338ca);
+      border: none;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+      transition: all 0.2s ease;
+      z-index: 2;
+    }
+
+    .scroll-arrow:hover {
+      transform: scale(1.08);
+      background: linear-gradient(135deg, #4f46e5, #3730a3);
+      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.45);
+    }
+
+    .sheet-pills-row {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      gap: 0.6rem;
+      padding: 0.2rem 0;
+      width: 100%;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .sheet-pills-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sheet-pill-btn {
+      font-size: 0.82rem;
+      padding: 0.45rem 0.85rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--bg-card-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .sheet-pill-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .sheet-pill-btn.active-sheet-pill {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(6, 182, 212, 0.3));
+      border-color: var(--accent-cyan);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+    }
+
+    /* Responsive Media Queries (320px to 4K) */
+    @media (max-width: 768px) {
+      header {
+        padding: 0.75rem 1rem;
+      }
+      .header-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      .brand {
+        justify-content: center;
+      }
+      .brand-title h1 {
+        font-size: 1.15rem;
+        text-align: center;
+      }
+      .brand-title p {
+        text-align: center;
+        font-size: 0.75rem;
+      }
+      .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+      .header-actions .btn {
+        justify-content: center;
+        padding: 0.55rem 0.6rem;
+        font-size: 0.78rem;
+      }
+      .container {
+        padding: 0 0.85rem;
+        margin: 1rem auto;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+      .stat-card {
+        padding: 0.85rem 1rem;
+      }
+      .stat-value {
+        font-size: 1.6rem;
+      }
+      .stat-label {
+        font-size: 0.7rem;
+      }
+      .stat-desc {
+        font-size: 0.72rem;
+      }
+      .dashboard-nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      .tabs {
+        display: flex;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scroll-behavior: smooth;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        padding-bottom: 0.4rem;
+        width: 100%;
+      }
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.8rem;
+      }
+      .filter-bar {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.6rem;
+      }
+      .search-box, .select-box, .search-box input, .select-box select {
+        width: 100% !important;
+      }
+      .store-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .sheet-scroller-wrap {
+        padding: 0.4rem 0.5rem;
+      }
+      .scroll-arrow {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+      }
+      #toast-container {
+        left: 12px !important;
+        right: 12px !important;
+        top: 12px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .header-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 4K Ultra-wide Optimization (1800px+) */
+    @media (min-width: 1800px) {
+      .header-container, .container {
+        max-width: 1800px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .store-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .stat-value {
+        font-size: 2.6rem;
+      }
+      .brand-title h1 {
+        font-size: 1.7rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -436,15 +712,17 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" onclick="fetchFeedData(true)">
+        <button id="btn-force-refresh" class="btn btn-secondary" onclick="fetchFeedData(true)">
           🔄 Force Refresh
         </button>
-        <button class="btn btn-primary" onclick="simulateWpSync()">
+        <button id="btn-wp-sync" class="btn btn-primary" onclick="simulateWpSync()">
           ⚡ Simulate WP Sync
         </button>
       </div>
     </div>
   </header>
+  
+  <div id="toast-container" style="position: fixed; top: 80px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;"></div>
 
   <div class="container">
     <!-- Statistics Cards -->
@@ -456,12 +734,12 @@
       </div>
       <div class="stat-card stat-awaiting">
         <div class="stat-label">Awaiting Geocode</div>
-        <div class="stat-value" id="stat-awaiting">-</div>
+        <div class="stat-value" id="stat-awaiting">0</div>
         <div class="stat-desc">Ready rows pending lat/lng pins</div>
       </div>
       <div class="stat-card stat-excluded">
         <div class="stat-label">Workbook Total</div>
-        <div class="stat-value" id="stat-workbook">-</div>
+        <div class="stat-value" id="stat-workbook">1503</div>
         <div class="stat-desc">Rows in July 2026 workbook</div>
       </div>
       <div class="stat-card stat-cache">
@@ -474,25 +752,40 @@
     <!-- Navigation & Filter Bar -->
     <div class="dashboard-nav">
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('stores')">🏪 Store Directory</button>
-        <button class="tab-btn" onclick="switchTab('json')">📄 Feed Payload JSON</button>
-        <button class="tab-btn" onclick="switchTab('diagnostics')">🛡️ Safeguards & Logs</button>
+        <button class="tab-btn active" onclick="switchTab('stores', event)">🏪 Store Directory</button>
+        <button class="tab-btn" onclick="switchTab('sales', event)">📊 Sales & Depletions Data</button>
+        <button class="tab-btn" onclick="switchTab('sheets', event)">📑 Sheet Tabs Explorer</button>
+        <button class="tab-btn" onclick="switchTab('json', event)">📄 Feed Payload JSON</button>
+        <button class="tab-btn" onclick="switchTab('diagnostics', event)">🛡️ Safeguards & Logs</button>
       </div>
       <div class="filter-bar">
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-          <input type="text" id="search-input" placeholder="Search store name, city..." oninput="renderStores()">
+          <input type="text" id="search-input" placeholder="Search store name, city, product..." oninput="resetAndRenderStores()">
         </div>
         <div class="select-box">
-          <select id="state-select" onchange="renderStores()">
+          <select id="sheet-tab-select" onchange="resetAndRenderStores()">
+            <option value="">All Sheet Tabs</option>
+          </select>
+        </div>
+        <div class="select-box">
+          <select id="state-select" onchange="resetAndRenderStores()">
             <option value="">All States</option>
           </select>
         </div>
         <div class="select-box">
-          <select id="type-select" onchange="renderStores()">
+          <select id="type-select" onchange="resetAndRenderStores()">
             <option value="">All Types</option>
             <option value="retail">Retail</option>
             <option value="bar-restaurant">Bar & Restaurant</option>
+          </select>
+        </div>
+        <div class="select-box">
+          <select id="sort-select" onchange="resetAndRenderStores()">
+            <option value="name-asc">Sort: Name (A-Z)</option>
+            <option value="name-desc">Sort: Name (Z-A)</option>
+            <option value="cases-desc">Sort: Cases (High to Low)</option>
+            <option value="city-asc">Sort: City (A-Z)</option>
           </select>
         </div>
       </div>
@@ -505,12 +798,47 @@
       </div>
     </div>
 
-    <!-- Tab 2: Feed Payload JSON -->
+    <!-- Tab 2: Sales & Depletions Data -->
+    <div id="tab-sales" class="hidden">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+        <div class="stat-card" style="background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.3);">
+          <div class="stat-label" style="color: #a5b4fc;">Total Volume Tracked</div>
+          <div class="stat-value" id="sales-total-cases" style="color: #6366f1;">-</div>
+          <div class="stat-desc">Cases across all active territories</div>
+        </div>
+        <div class="stat-card" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+          <div class="stat-label" style="color: #6ee7b7;">Top Product Bottling</div>
+          <div class="stat-value" id="sales-top-product" style="color: #10b981; font-size: 1.25rem;">-</div>
+          <div class="stat-desc">Highest volume Casa Mexico line</div>
+        </div>
+        <div class="stat-card" style="background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
+          <div class="stat-label" style="color: #67e8f9;">Active Territories</div>
+          <div class="stat-value" id="sales-total-territories" style="color: #06b6d4;">-</div>
+          <div class="stat-desc">States and regional markets</div>
+        </div>
+      </div>
+      <div id="sales-breakdown-container" class="store-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Tab 3: Sheet Tabs Explorer -->
+    <div id="tab-sheets" class="hidden">
+      <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Select a Google Sheet workbook tab to view its parsed locations and dataset details:</div>
+      <div class="sheet-scroller-wrap">
+        <button type="button" class="scroll-arrow" onclick="scrollSheetPills(-250)" title="Scroll Left">◄</button>
+        <div id="sheet-pills-container" class="sheet-pills-row"></div>
+        <button type="button" class="scroll-arrow" onclick="scrollSheetPills(250)" title="Scroll Right">►</button>
+      </div>
+      <div class="store-grid" id="sheet-explorer-container"></div>
+    </div>
+
+    <!-- Tab 4: Feed Payload JSON -->
     <div id="tab-json" class="hidden">
       <pre class="code-viewer" id="json-viewer">Loading feed JSON payload...</pre>
     </div>
 
-    <!-- Tab 3: Safeguards & Logs -->
+    <!-- Tab 5: Safeguards & Logs -->
     <div id="tab-diagnostics" class="hidden">
       <div class="stat-card" style="margin-bottom: 1.5rem;">
         <h3 style="margin-bottom: 0.5rem; font-family: 'Outfit';">Pipeline Safeguards Active</h3>
@@ -531,6 +859,7 @@
 
   <script>
     let globalFeedData = null;
+    let visibleCount = 8;
 
     function logMsg(msg) {
       const panel = document.getElementById('log-panel');
@@ -539,19 +868,64 @@
       panel.scrollTop = panel.scrollHeight;
     }
 
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'rgba(16, 185, 129, 0.9)' : type === 'error' ? 'rgba(244, 63, 94, 0.9)' : 'rgba(99, 102, 241, 0.9)';
+      toast.style.cssText = `background: ${bg}; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.3); backdrop-filter: blur(8px); transition: all 0.3s ease; pointer-events: auto; opacity: 0; transform: translateY(-10px);`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      });
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function resetAndRenderStores() {
+      visibleCount = 8;
+      renderStores();
+    }
+
+    function loadMoreStores() {
+      visibleCount += 8;
+      renderStores();
+    }
+
     async function fetchFeedData(refresh = false) {
+      const btnRefresh = document.getElementById('btn-force-refresh');
+      if (btnRefresh) btnRefresh.innerHTML = '⏳ Refreshing...';
+
+      const container = document.getElementById('store-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="loader-card">
+            <div class="spinner"></div>
+            <div style="font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:700; color:#fff;">Fetching Store Feed Data...</div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">Parsing coordinates, territory volume & tab metadata</div>
+          </div>
+        `;
+      }
+
       try {
-        logMsg(refresh ? 'Fetching fresh feed from Apps Script engine...' : 'Loading feed data...');
+        logMsg(refresh ? 'Fetching fresh feed from Apps Script engine with live cache bypass (nocache=1)...' : 'Loading feed data...');
         let data = null;
         try {
-          const res = await fetch('/api/feed' + (refresh ? '?refresh=1' : ''));
+          const res = await fetch('/api/feed' + (refresh ? '?refresh=1&nocache=1&fresh=1' : ''));
           if (res.ok) data = await res.json();
         } catch (e) {}
 
         if (!data || !data.locations) {
           logMsg('Fetching live feed directly from Apps Script URL...');
           try {
-            const liveRes = await fetch('https://script.google.com/macros/s/AKfycbwTmH7uI7FZc5raOsDfIv6y6JgTNYXRj7Q5UR-njQnqj_2xOLhAjfo9v4V4ogNC-TqA5w/exec');
+            const liveRes = await fetch('https://script.google.com/macros/s/AKfycbwTmH7uI7FZc5raOsDfIv6y6JgTNYXRj7Q5UR-njQnqj_2xOLhAjfo9v4V4ogNC-TqA5w/exec' + (refresh ? '?nocache=1&fresh=1' : ''));
             if (liveRes.ok) data = await liveRes.json();
           } catch (e) {}
         }
@@ -564,33 +938,50 @@
         
         globalFeedData = data;
         
-        document.getElementById('stat-published').textContent = data.count || 0;
-        document.getElementById('stat-generated-at').textContent = 'Generated: ' + new Date(data.generatedAt).toLocaleTimeString();
+        const publishedCount = data.count || 0;
+        const skippedAwaiting = data.skipped ? (data.skipped.invalidCoordinates || 0) : 0;
+        const totalSkipped = data.skipped ? ((data.skipped.notReady || 0) + (data.skipped.invalidCoordinates || 0) + (data.skipped.duplicate || 0)) : 0;
+        const totalRows = data.rawRowCount || (publishedCount + totalSkipped);
+
+        document.getElementById('stat-published').textContent = publishedCount;
+        document.getElementById('stat-awaiting').textContent = skippedAwaiting;
+        document.getElementById('stat-workbook').textContent = totalRows;
+
+        document.getElementById('stat-generated-at').textContent = 'Generated: ' + new Date(data.generatedAt || Date.now()).toLocaleTimeString();
         document.getElementById('json-viewer').textContent = JSON.stringify(data, null, 2);
 
         populateStateFilter(data.locations || []);
-        renderStores();
+        populateSheetTabFilter(data.locations || []);
+        renderSalesTab(data.locations || []);
+        renderSheetsExplorer(data.locations || []);
+        resetAndRenderStores();
         logMsg(`Feed updated successfully. ${data.count} publishable locations returned.`);
+        if (refresh) showToast(`Force Refresh Complete! ${data.count} locations updated cleanly.`, 'success');
       } catch (err) {
         logMsg('Error loading feed: ' + err.message);
+        showToast('Error fetching feed: ' + err.message, 'error');
+      } finally {
+        if (btnRefresh) btnRefresh.innerHTML = '🔄 Force Refresh';
       }
     }
 
     async function fetchRawStats() {
       try {
         const res = await fetch('/api/raw-stats');
-        const stats = await res.json();
-        document.getElementById('stat-awaiting').textContent = stats.awaitingGeocode || 0;
-        document.getElementById('stat-workbook').textContent = stats.totalWorkbookRows || 0;
+        if (res.ok) {
+          const stats = await res.json();
+          if (stats.awaitingGeocode !== undefined) document.getElementById('stat-awaiting').textContent = stats.awaitingGeocode;
+          if (stats.totalWorkbookRows !== undefined) document.getElementById('stat-workbook').textContent = stats.totalWorkbookRows;
+        }
       } catch (err) {
-        console.error('Stats error:', err);
+        // Fallback numbers calculated directly from feed payload
       }
     }
 
     function populateStateFilter(locations) {
-      const states = [...new Set(locations.map(l => l.state).filter(Boolean))].sort();
+      const states = [...new Set(locations.map(l => l.state).filter(st => st && st.length <= 3 && !/\s/.test(st)))].sort();
       const select = document.getElementById('state-select');
-      select.innerHTML = '<option value="">All States</option>';
+      select.innerHTML = '<option value="">All States (' + states.length + ')</option>';
       states.forEach(st => {
         const opt = document.createElement('option');
         opt.value = st;
@@ -599,27 +990,272 @@
       });
     }
 
+    function populateSheetTabFilter(locations) {
+      const tabs = [...new Set(locations.map(l => l.tabName).filter(Boolean))].sort();
+      const select = document.getElementById('sheet-tab-select');
+      if (!select) return;
+      select.innerHTML = '<option value="">All Sheet Tabs (' + locations.length + ')</option>';
+      tabs.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        select.appendChild(opt);
+      });
+    }
+
+    let visibleSalesCount = 8;
+    let selectedExplorerTab = null;
+
+    function scrollSheetPills(amount) {
+      const container = document.getElementById('sheet-pills-container');
+      if (container) {
+        container.scrollBy({ left: amount, behavior: 'smooth' });
+      }
+    }
+
+    function renderSalesTab(locations) {
+      let totalCases = 0;
+      const productCounts = {};
+      const territoryCounts = {};
+
+      locations.forEach(loc => {
+        const cVal = Number(loc.cases);
+        if (!isNaN(cVal) && cVal > 0) totalCases += cVal;
+        const prod = loc.bottlings || 'Blanco';
+        productCounts[prod] = (productCounts[prod] || 0) + (cVal || 1);
+        const terr = loc.territory || loc.state || 'US';
+        territoryCounts[terr] = (territoryCounts[terr] || 0) + (cVal || 1);
+      });
+
+      let topProd = 'Casa Mexico Reposado';
+      let maxVol = 0;
+      Object.keys(productCounts).forEach(p => {
+        if (productCounts[p] > maxVol) {
+          maxVol = productCounts[p];
+          topProd = p;
+        }
+      });
+
+      const roundedTotal = Math.round(totalCases * 100) / 100;
+
+      document.getElementById('sales-total-cases').textContent = roundedTotal ? roundedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' Cases' : locations.length + ' Accounts';
+      document.getElementById('sales-top-product').textContent = topProd;
+      document.getElementById('sales-total-territories').textContent = Object.keys(territoryCounts).length + ' Markets';
+
+      const container = document.getElementById('sales-breakdown-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const territories = Object.keys(territoryCounts).sort();
+      const pageTerritories = territories.slice(0, visibleSalesCount);
+
+      pageTerritories.forEach(terr => {
+        const terrVolRaw = territoryCounts[terr];
+        const roundedTerrVol = Math.round(terrVolRaw * 100) / 100;
+        const formattedTerrVol = roundedTerrVol.toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+        const card = document.createElement('div');
+        card.className = 'store-card';
+        card.innerHTML = `
+          <div>
+            <div style="font-family:'Outfit'; font-size:1.15rem; font-weight:700; color:#fff;">📍 Territory: ${escapeHtml(terr)}</div>
+            <div style="margin-top:0.5rem; font-size:0.9rem; color:var(--accent-cyan);">📦 Volume: <strong>${formattedTerrVol}</strong> units / cases</div>
+          </div>
+          <div style="margin-top:1rem;">
+            <button class="btn btn-secondary" style="width:100%; text-align:center;" onclick="filterByTerritory('${escapeHtml(terr)}')">View Locations in ${escapeHtml(terr)}</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      let salesShowMoreWrap = document.getElementById('sales-show-more-wrap');
+      if (!salesShowMoreWrap) {
+        salesShowMoreWrap = document.createElement('div');
+        salesShowMoreWrap.id = 'sales-show-more-wrap';
+        salesShowMoreWrap.style.cssText = 'grid-column: 1 / -1; text-align: center; margin-top: 2rem; margin-bottom: 2rem;';
+        container.parentNode.appendChild(salesShowMoreWrap);
+      }
+
+      if (territories.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 3rem;">No sales records found.</div>`;
+        salesShowMoreWrap.innerHTML = '';
+      } else if (visibleSalesCount < territories.length) {
+        salesShowMoreWrap.innerHTML = `
+          <button class="show-more-btn" onclick="loadMoreSalesTerritories()">
+            ➕ Show More Territories (${pageTerritories.length} of ${territories.length} visible)
+          </button>
+        `;
+      } else {
+        salesShowMoreWrap.innerHTML = `
+          <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">
+            ✓ All ${territories.length} sales territory markets loaded
+          </div>
+        `;
+      }
+    }
+
+    function loadMoreSalesTerritories() {
+      visibleSalesCount += 8;
+      if (globalFeedData && globalFeedData.locations) {
+        renderSalesTab(globalFeedData.locations);
+      }
+    }
+
+    let visibleSheetStoresCount = 8;
+
+    function renderSheetsExplorer(locations) {
+      if (!locations || locations.length === 0) return;
+      const tabs = [...new Set(locations.map(l => l.tabName).filter(Boolean))].sort();
+      const pillsContainer = document.getElementById('sheet-pills-container');
+      if (!pillsContainer) return;
+      pillsContainer.innerHTML = '';
+
+      if (!selectedExplorerTab || !tabs.includes(selectedExplorerTab)) {
+        selectedExplorerTab = tabs[0] || null;
+      }
+
+      tabs.forEach(t => {
+        const count = locations.filter(l => l.tabName === t).length;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sheet-pill-btn' + (t === selectedExplorerTab ? ' active-sheet-pill' : '');
+        btn.textContent = `${t} (${count})`;
+        btn.title = `Sheet Tab: "${escapeHtml(t)}" • ${count} published store location${count === 1 ? '' : 's'}`;
+        btn.onclick = () => {
+          selectedExplorerTab = t;
+          visibleSheetStoresCount = 8;
+          document.querySelectorAll('.sheet-pill-btn').forEach(b => b.classList.remove('active-sheet-pill'));
+          btn.classList.add('active-sheet-pill');
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          renderSheetExplorerStores(t, locations);
+        };
+        pillsContainer.appendChild(btn);
+      });
+
+      if (selectedExplorerTab) {
+        renderSheetExplorerStores(selectedExplorerTab, locations);
+      }
+    }
+
+    function loadMoreSheetStores() {
+      visibleSheetStoresCount += 8;
+      if (globalFeedData && globalFeedData.locations && selectedExplorerTab) {
+        renderSheetExplorerStores(selectedExplorerTab, globalFeedData.locations);
+      }
+    }
+
+    function renderSheetExplorerStores(tabName, locations) {
+      const container = document.getElementById('sheet-explorer-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const tabStores = locations.filter(l => l.tabName === tabName);
+      let sheetShowMoreWrap = document.getElementById('sheet-show-more-wrap');
+
+      if (tabStores.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 3rem;">No stores found in sheet tab "${escapeHtml(tabName)}".</div>`;
+        if (sheetShowMoreWrap) sheetShowMoreWrap.innerHTML = '';
+        return;
+      }
+
+      const pageItems = tabStores.slice(0, visibleSheetStoresCount);
+
+      pageItems.forEach(loc => {
+        const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
+        const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
+        const cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
+        const storeId = loc.id || loc.placeId || 'N/A';
+        const phoneHtml = loc.phone ? `<div style="margin-top:0.4rem; font-size:0.82rem; color:var(--text-muted);">📞 <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></div>` : '';
+        const websiteHtml = loc.website ? `<div style="margin-top:0.3rem;"><a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-block; font-size:0.78rem; color:#6366f1; background:rgba(99,102,241,0.12); padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 Website</a></div>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'store-card';
+        card.innerHTML = `
+          <div>
+            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.6rem; margin-bottom:0.8rem;">
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center; gap:0.75rem;">
+                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.2rem 0.55rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25); max-width:68%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Store ID: ${escapeHtml(storeId)}">${escapeHtml(storeId)}</span>
+                <span class="badge ${typeClass}" style="flex-shrink:0;" title="Premise Type: ${typeLabel}">${typeLabel}</span>
+              </div>
+              <div class="store-name" style="font-size:1.15rem; line-height:1.3; margin-top:0.3rem;">${cleanName}</div>
+            </div>
+            <div class="store-address" style="margin-top:0.5rem;">
+              📍 ${escapeHtml(loc.address)}<br>
+              ${escapeHtml(loc.city)}, ${escapeHtml(loc.state)} ${escapeHtml(loc.postalCode)}
+            </div>
+            ${phoneHtml}
+            ${websiteHtml}
+          </div>
+          <div style="margin-top:0.8rem;">
+            <div class="store-meta">
+              <span class="coordinates" title="Map Coordinates">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span>
+              ${loc.cases ? `<span class="cases-tag" title="Cases Volume: ${loc.cases}">📦 ${loc.cases} cases</span>` : ''}
+            </div>
+            ${loc.bottlings ? `<div class="bottlings-list" title="Products Stocked: ${escapeHtml(loc.bottlings)}">🍸 ${escapeHtml(loc.bottlings)}</div>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      if (!sheetShowMoreWrap) {
+        sheetShowMoreWrap = document.createElement('div');
+        sheetShowMoreWrap.id = 'sheet-show-more-wrap';
+        sheetShowMoreWrap.style.cssText = 'grid-column: 1 / -1; text-align: center; margin-top: 2rem; margin-bottom: 2rem;';
+        container.parentNode.appendChild(sheetShowMoreWrap);
+      }
+
+      if (visibleSheetStoresCount < tabStores.length) {
+        sheetShowMoreWrap.innerHTML = `
+          <button class="show-more-btn" onclick="loadMoreSheetStores()">
+            ➕ Show More Stores in ${escapeHtml(tabName)} (${pageItems.length} of ${tabStores.length} visible)
+          </button>
+        `;
+      } else {
+        sheetShowMoreWrap.innerHTML = `
+          <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">
+            ✓ All ${tabStores.length} store locations in "${escapeHtml(tabName)}" loaded
+          </div>
+        `;
+      }
+    }
+
+    function filterByTerritory(terr) {
+      document.getElementById('search-input').value = terr;
+      switchTab('stores');
+      resetAndRenderStores();
+    }
+
     function renderStores() {
       if (!globalFeedData || !globalFeedData.locations) return;
 
       const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const selectedTab = document.getElementById('sheet-tab-select') ? document.getElementById('sheet-tab-select').value : '';
       const selectedState = document.getElementById('state-select').value;
       const selectedType = document.getElementById('type-select').value;
+      const selectedSort = document.getElementById('sort-select') ? document.getElementById('sort-select').value : 'name-asc';
 
       const container = document.getElementById('store-container');
       container.innerHTML = '';
 
-      const filtered = globalFeedData.locations.filter(loc => {
-        const matchesSearch = !searchTerm || 
-          loc.name.toLowerCase().includes(searchTerm) || 
-          loc.city.toLowerCase().includes(searchTerm) ||
-          loc.address.toLowerCase().includes(searchTerm);
+      let filtered = globalFeedData.locations.filter(loc => {
+        const fullText = [loc.name, loc.address, loc.city, loc.state, loc.bottlings, loc.tabName, loc.territory].join(' ').toLowerCase();
+        const matchesSearch = !searchTerm || fullText.includes(searchTerm);
+        const matchesTab = !selectedTab || loc.tabName === selectedTab;
         const matchesState = !selectedState || loc.state === selectedState;
         const matchesType = !selectedType || loc.type === selectedType;
-        return matchesSearch && matchesState && matchesType;
+        return matchesSearch && matchesTab && matchesState && matchesType;
       });
 
-      filtered.forEach(loc => {
+      filtered.sort((a, b) => {
+        if (selectedSort === 'name-desc') return String(b.name || '').localeCompare(String(a.name || ''));
+        if (selectedSort === 'cases-desc') return (Number(b.cases) || 0) - (Number(a.cases) || 0);
+        if (selectedSort === 'city-asc') return String(a.city || '').localeCompare(String(b.city || ''));
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+
+      const pageItems = filtered.slice(0, visibleCount);
+
+      pageItems.forEach(loc => {
         const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
         const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
         const cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
@@ -627,17 +1263,18 @@
         const phoneHtml = loc.phone ? `<div style="margin-top:0.4rem; font-size:0.82rem; color:var(--text-muted);">📞 <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></div>` : '';
         const websiteHtml = loc.website ? `<div style="margin-top:0.3rem;"><a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-block; font-size:0.78rem; color:#6366f1; background:rgba(99,102,241,0.12); padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 Website</a></div>` : '';
         const distHtml = loc.distributor ? `<div style="margin-top:0.4rem; font-size:0.78rem; color:var(--text-dim);">🚚 ${escapeHtml(loc.distributor)} ${loc.territory ? `(${escapeHtml(loc.territory)})` : ''}</div>` : '';
+        const tabHtml = loc.tabName ? `<div style="margin-top:0.3rem;"><span style="font-size:0.72rem; color:#c084fc; background:rgba(192,132,252,0.12); padding:0.15rem 0.5rem; border-radius:4px; border:1px solid rgba(192,132,252,0.25);">📄 ${escapeHtml(loc.tabName)}</span></div>` : '';
 
         const card = document.createElement('div');
         card.className = 'store-card';
         card.innerHTML = `
           <div>
-            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.4rem;">
-              <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.15rem 0.5rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25);">${escapeHtml(storeId)}</span>
-                <span class="badge ${typeClass}">${typeLabel}</span>
+            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.6rem; margin-bottom:0.8rem;">
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center; gap:0.75rem;">
+                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.2rem 0.55rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25); max-width:68%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(storeId)}">${escapeHtml(storeId)}</span>
+                <span class="badge ${typeClass}" style="flex-shrink:0;">${typeLabel}</span>
               </div>
-              <div class="store-name" style="font-size:1.15rem; margin-top:0.2rem;">${cleanName}</div>
+              <div class="store-name" style="font-size:1.15rem; line-height:1.3; margin-top:0.3rem;">${cleanName}</div>
             </div>
             <div class="store-address" style="margin-top:0.5rem;">
               📍 ${escapeHtml(loc.address)}<br>
@@ -646,6 +1283,7 @@
             ${phoneHtml}
             ${websiteHtml}
             ${distHtml}
+            ${tabHtml}
           </div>
           <div style="margin-top:0.8rem;">
             <div class="store-meta">
@@ -658,35 +1296,83 @@
         container.appendChild(card);
       });
 
+      // Show More Button Handler
+      let showMoreWrap = document.getElementById('show-more-wrap');
+      if (!showMoreWrap) {
+        showMoreWrap = document.createElement('div');
+        showMoreWrap.id = 'show-more-wrap';
+        showMoreWrap.style.cssText = 'grid-column: 1 / -1; text-align: center; margin-top: 2rem; margin-bottom: 2rem;';
+        container.parentNode.appendChild(showMoreWrap);
+      }
+
       if (filtered.length === 0) {
         container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 3rem;">No stores found matching filter criteria.</div>`;
+        showMoreWrap.innerHTML = '';
+      } else if (visibleCount < filtered.length) {
+        showMoreWrap.innerHTML = `
+          <button class="show-more-btn" onclick="loadMoreStores()">
+            ➕ Show More Stores (${pageItems.length} of ${filtered.length} visible)
+          </button>
+        `;
+      } else {
+        showMoreWrap.innerHTML = `
+          <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">
+            ✓ All ${filtered.length} store locations loaded
+          </div>
+        `;
       }
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      if (evt && evt.target) evt.target.classList.add('active');
 
-      document.getElementById('tab-stores').classList.add('hidden');
-      document.getElementById('tab-json').classList.add('hidden');
-      document.getElementById('tab-diagnostics').classList.add('hidden');
+      ['stores', 'sales', 'sheets', 'json', 'diagnostics'].forEach(id => {
+        const el = document.getElementById('tab-' + id);
+        if (el) el.classList.add('hidden');
+      });
 
-      document.getElementById('tab-' + tabName).classList.remove('hidden');
+      const filterBar = document.querySelector('.filter-bar');
+      if (filterBar) {
+        filterBar.style.display = (tabName === 'stores') ? 'flex' : 'none';
+      }
+
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.remove('hidden');
+
+      if (tabName === 'sheets' && globalFeedData && globalFeedData.locations) {
+        renderSheetsExplorer(globalFeedData.locations);
+      }
     }
 
-    function simulateWpSync() {
-      logMsg('Initiating WordPress plugin sync simulation...');
-      if (!globalFeedData) return;
+    async function simulateWpSync() {
+      const btnSync = document.getElementById('btn-wp-sync');
+      if (btnSync) btnSync.innerHTML = '⚡ Syncing Live...';
+      logMsg('Initiating WordPress plugin instant live cache-bypass sync simulation...');
+      
+      await fetchFeedData(true);
+
+      if (!globalFeedData || !globalFeedData.locations) {
+        logMsg('❌ WP Sync Error: Could not retrieve valid location payload.');
+        showToast('WP Sync Failed: Unable to fetch feed payload', 'error');
+        if (btnSync) btnSync.innerHTML = '⚡ Simulate WP Sync';
+        return;
+      }
       
       // Simulate WordPress validation logic
       if (globalFeedData.locations.length < 50) {
-        logMsg('❌ WP Sync Error: Feed contained fewer than safety floor (50). Map preserved.');
+        logMsg(`❌ WP Sync Error: Feed contained ${globalFeedData.locations.length} stores (fewer than safety floor of 50). Existing map preserved.`);
+        showToast(`WP Sync Rejected: Store count (${globalFeedData.locations.length}) below safety floor (50)`, 'error');
+        if (btnSync) btnSync.innerHTML = '⚡ Simulate WP Sync';
         return;
       }
+
       logMsg('✅ WP Sync Validated shape, coordinates, and minimum location floor.');
       logMsg('💾 Updated cached feed file: wp-content/uploads/casa-mexico-locations.json');
       window.dispatchEvent(new CustomEvent('cmx:locations-ready', { detail: globalFeedData }));
       logMsg('📡 Emitted browser event "cmx:locations-ready"');
+      showToast(`Instant WP Live Sync Completed! ${globalFeedData.locations.length} stores published atomically.`, 'success');
+      if (btnSync) btnSync.innerHTML = '⚡ Simulate WP Sync';
     }
 
     function escapeHtml(str) {

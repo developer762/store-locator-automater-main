@@ -62,7 +62,7 @@ Set the optional `GEOCODE_BATCH_SIZE` script property between 1 and 100 to
 change the hourly batch size.
 
 The endpoint returns an object containing `generatedAt`, `count`, `skipped`,
-and `locations`. Add `?refresh=1` to bypass its five-minute cache while testing.
+and `locations`. Add `?fresh=1` or `?nocache=1` to bypass script caching immediately on demand. Clicking **Save & Sync Now** in WordPress automatically triggers a 0-latency live cache-bypass sync.
 
 ## 2. Deploy Apps Script with clasp
 

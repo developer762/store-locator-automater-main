@@ -2,20 +2,20 @@ var LOCATOR_CONFIG = Object.freeze({
   sheetName: 'Store Locator Feed',
   cacheSeconds: 300,
   headerAliases: {
-    name: ['Store Name', 'Locator Name', 'Name', 'Account Name'],
-    address: ['Address', 'Final Address', 'Street Address'],
-    city: ['City'],
-    state: ['State'],
-    postalCode: ['Zip', 'Postal Code', 'Zip Code'],
-    premiseType: ['Category', 'Premise Type', 'Type'],
+    name: ['Store Name', 'Locator Name', 'Account Name', 'Retail Accounts', 'Sold To', 'Companies', 'Distributor Location / Retailer', 'Retailer', 'Location / Salesman Assigned / Customer Name', 'Customer Name', 'Account', 'Store', 'Name'],
+    address: ['Address', 'Final Address', 'Street Address', 'Location Address'],
+    city: ['City', 'Town', 'Municipality'],
+    state: ['State', 'ST', 'Province'],
+    postalCode: ['Zip', 'Postal Code', 'Zip Code', 'Zipcode'],
+    premiseType: ['Category', 'Premise Type', 'Type', 'Premise'],
     status: ['Publish Status', 'Status'],
     latitude: ['Latitude', 'Lat'],
     longitude: ['Longitude', 'Lng', 'Long'],
     placeId: ['Google Place ID', 'Place ID', 'Store ID'],
     phone: ['Phone', 'Phone Number'],
     website: ['Website', 'URL'],
-    cases: ['Cases', '9L Cases', 'Volume'],
-    bottlings: ['Bottlings', 'Products']
+    cases: ['Cases', '9L Cases', 'Volume', 'Units Sold', 'Quantity', '9 Liter Equivs', 'Cases 2026/7', 'Cases Sum', 'Jul Cases Sum', 'Case Equiv 2026'],
+    bottlings: ['Bottlings', 'Products', 'Item Names', 'Product Name', 'Product', 'Item', 'Item Description', 'Brands', 'Brand']
   },
   requiredHeaders: [
     'Locator Name',

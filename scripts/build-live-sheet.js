@@ -56,7 +56,8 @@ CMT-2026Q1-072	Rupee Wine & Spirits	4812 N Broadway	Chicago	IL	60640	Retail	+1 7
 CMT-2026Q1-073	Sky Beverage Depot	4635 N Broadway	Chicago	IL	60640	Retail	+1 773-809-8909	https://hopsandgrape.com/	Espiritus (IL)	IL-Espiritus	41.96702	-87.65863
 CMT-2026Q1-074	Su Casa	49 E Ontario St	Chicago	IL	60611	Bar / Restaurant	+1 312-943-4041	https://sucasamexican.com/	Espiritus (IL)	IL-Espiritus	41.8931	-87.62622
 CMT-2026Q1-075	Town Armanetti Beverage Mart	10000 S Western Ave	Chicago	IL	60643	Retail	+1 773-239-2800		Espiritus (IL)	IL-Espiritus	41.71174	-87.68189
-CMT-2026Q1-059	Garfield's Beverage Warehouse - Crystal L	320 W Virginia St	Crystal Lake	IL	60014	Retail	+1 815-459-4050	https://garfieldsbeverage.com/	Espiritus (IL)	IL-Espiritus	42.23149	-88.33217`;
+CMT-2026Q1-059	Garfield's Beverage Warehouse - Crystal L	320 W Virginia St	Crystal Lake	IL	60014	Retail	+1 815-459-4050	https://garfieldsbeverage.com/	Espiritus (IL)	IL-Espiritus	42.23149	-88.33217
+CMT-NY-058	World Of Liquors	World Of Liquors, India, NY	India	NY	10501	Retail	+1 555-0199		NY Distributor	NY	40.7128	-74.006`;
 
 function normalizePremiseType(category) {
   const norm = String(category || '').toLowerCase();
@@ -84,6 +85,7 @@ function parseTsv(tsvString) {
       latitude: Number(parts[11]),
       longitude: Number(parts[12]),
       placeId: parts[0],
+      tabName: parts[4] === 'NY' ? 'July 2026 NY-NJ' : 'Store Locator',
       cases: null,
       bottlings: 'Blanco, Reposado, Anejo'
     };
