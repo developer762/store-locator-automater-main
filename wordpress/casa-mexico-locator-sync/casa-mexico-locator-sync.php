@@ -33,7 +33,7 @@ add_shortcode('casa_mexico_locator', 'cmx_locator_shortcode');
 function cmx_locator_defaults()
 {
     return array(
-        'endpoint' => '',
+        'endpoint' => 'https://script.google.com/macros/s/AKfycbz8pQv5oekeeTT35zyE22mPqczBBeWI6facsR9vs62jUCzv-kC4eiDxKyYf43nvx9Faew/exec',
         'minimum_locations' => 50,
         'last_sync_at' => '',
         'last_count' => 0,
@@ -57,10 +57,7 @@ function cmx_locator_ensure_scheduled()
 function cmx_locator_activate()
 {
     cmx_locator_ensure_scheduled();
-    $options = cmx_locator_options();
-    if (!empty($options['endpoint'])) {
-        cmx_locator_sync();
-    }
+    cmx_locator_sync();
 }
 
 function cmx_locator_deactivate()
@@ -168,9 +165,6 @@ function cmx_locator_validate_payload($payload, $minimum)
         if (!is_array($location) || empty($location['name'])) {
             continue;
         }
-        if (empty($location['address']) && empty($location['city'])) {
-            continue;
-        }
         $lat_raw = isset($location['latitude']) ? $location['latitude'] : 0;
         $lng_raw = isset($location['longitude']) ? $location['longitude'] : 0;
         $latitude = filter_var($lat_raw, FILTER_VALIDATE_FLOAT);
@@ -228,6 +222,9 @@ function cmx_locator_register_rest_routes()
 function cmx_locator_rest_get_feed()
 {
     $path = cmx_locator_feed_path();
+    if (!file_exists($path)) {
+        cmx_locator_sync();
+    }
     if (file_exists($path)) {
         $content = file_get_contents($path);
         $data = json_decode($content, true);
@@ -267,16 +264,26 @@ function cmx_locator_rest_trigger_sync($request)
 function cmx_locator_enqueue_config()
 {
     $options = cmx_locator_options();
+    $path = cmx_locator_feed_path();
+    if (!file_exists($path)) {
+        cmx_locator_sync();
+        $options = cmx_locator_options();
+    }
+
+    $default_endpoint = 'https://script.google.com/macros/s/AKfycbz8pQv5oekeeTT35zyE22mPqczBBeWI6facsR9vs62jUCzv-kC4eiDxKyYf43nvx9Faew/exec';
+    $direct_endpoint = !empty($options['endpoint']) ? $options['endpoint'] : $default_endpoint;
+
     wp_enqueue_script(
         'cmx-locator-feed',
         plugins_url('assets/locator-feed.js', __FILE__),
         array(),
-        '1.1.0',
+        '1.1.1',
         true
     );
     wp_localize_script('cmx-locator-feed', 'CMX_LOCATOR', array(
         'url' => add_query_arg('v', rawurlencode((string) $options['last_sync_at']), cmx_locator_feed_url()),
         'restUrl' => esc_url_raw(rest_url('cmx-locator/v1/feed')),
+        'directEndpoint' => esc_url_raw($direct_endpoint),
         'updatedAt' => $options['last_sync_at'],
         'count' => (int) $options['last_count'],
     ));
@@ -305,14 +312,14 @@ function cmx_locator_enqueue_shortcode_assets()
         'cmx-locator-map',
         plugins_url('assets/locator-map.css', __FILE__),
         array('leaflet'),
-        '1.5.0'
+        filemtime(plugin_dir_path(__FILE__) . 'assets/locator-map.css')
     );
 
     wp_enqueue_script(
         'cmx-locator-map',
         plugins_url('assets/locator-map.js', __FILE__),
         array('leaflet', 'cmx-locator-feed'),
-        '1.5.0',
+        filemtime(plugin_dir_path(__FILE__) . 'assets/locator-map.js'),
         true
     );
 }
@@ -470,10 +477,15 @@ function cmx_locator_settings_page()
     }
     $options = cmx_locator_options();
     $next_cron = wp_next_scheduled(CMX_LOCATOR_CRON);
-    $published_count = isset($_GET['cmx_count']) ? (int)$_GET['cmx_count'] : (int)$options['last_count'];
+    $logo_url = plugins_url('assets/logo-casa-mexico.svg', __FILE__);
     ?>
     <div class="wrap">
-        <h1>Casa Mexico Store Locator Sync</h1>
+        <h1 style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: #ffffff; padding: 4px 8px; border-radius: 8px; display: inline-flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <img src="<?php echo esc_url($logo_url); ?>" alt="Casa Mexico" style="height: 32px; width: auto; vertical-align: middle;">
+            </div>
+            <span>Casa Mexico Store Locator Sync</span>
+        </h1>
         <?php if (isset($_GET['cmx_sync'])) : ?>
             <div class="notice notice-<?php echo $_GET['cmx_sync'] === 'success' ? 'success' : 'error'; ?> is-dismissible"><p>
                 <?php echo $_GET['cmx_sync'] === 'success' ? sprintf('Locator sync completed successfully! (%d stores published)', $published_count) : 'Sync failed: ' . esc_html(!empty($options['last_error']) ? $options['last_error'] : 'Could not fetch Apps Script payload. Please ensure Web App deployment access is set to "Anyone".'); ?>

@@ -51,10 +51,11 @@ function getLocatorPayload_(bypassCache) {
     if (sheet.isSheetHidden()) continue;
     
     var sheetName = sheet.getName();
+    var sheetGid = sheet.getSheetId ? sheet.getSheetId() : '';
     var values = sheet.getDataRange().getValues();
     if (!values || values.length < 2) continue;
 
-    var result = normalizeSheetRows_(values, sheetName, seenIds);
+    var result = normalizeSheetRows_(values, sheetName, seenIds, sheetGid);
     allLocations = allLocations.concat(result.locations);
     totalSkipped.notReady += result.skipped.notReady;
     totalSkipped.invalidCoordinates += result.skipped.invalidCoordinates;
@@ -98,10 +99,12 @@ var STATE_COORDINATES_ = {
   WI: [43.7844, -88.7879], WY: [43.0759, -107.2903]
 };
 
-function normalizeSheetRows_(values, sheetName, seenIds) {
+function normalizeSheetRows_(values, sheetName, seenIds, sheetGid) {
   var locations = [];
   var skipped = { notReady: 0, invalidCoordinates: 0, duplicate: 0 };
   if (!values || values.length < 1) return { locations: locations, skipped: skipped };
+
+  var cleanGid = sheetGid !== undefined && sheetGid !== null ? String(sheetGid) : '';
 
   // Infer default state from sheet name if missing in row (e.g. "Casa Mexico Rolling 12 (24) KY" -> "KY", "July 2026 NY-NJ" -> "NY")
   var inferredState = '';
@@ -114,8 +117,8 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
   // Find header row (search first 10 rows)
   var headerRowIdx = -1;
   for (var h = 0; h < Math.min(10, values.length); h++) {
-    var rowText = values[h].join(' ').toLowerCase();
-    if (rowText.indexOf('account') !== -1 || rowText.indexOf('store') !== -1 || rowText.indexOf('address') !== -1 || rowText.indexOf('retailer') !== -1 || rowText.indexOf('customer') !== -1) {
+    var rowText = (values[h] || []).join(' ').toLowerCase();
+    if (rowText.indexOf('account') !== -1 || rowText.indexOf('store') !== -1 || rowText.indexOf('address') !== -1 || rowText.indexOf('retailer') !== -1 || rowText.indexOf('customer') !== -1 || rowText.indexOf('transaction') !== -1 || rowText.indexOf('description') !== -1 || rowText.indexOf('quantity') !== -1 || rowText.indexOf('item') !== -1 || rowText.indexOf('cases') !== -1 || rowText.indexOf('brand') !== -1 || rowText.indexOf('company') !== -1 || rowText.indexOf('name') !== -1 || rowText.indexOf('sold') !== -1 || rowText.indexOf('client') !== -1 || rowText.indexOf('buyer') !== -1 || rowText.indexOf('date') !== -1 || rowText.indexOf('city') !== -1) {
       headerRowIdx = h;
       break;
     }
@@ -146,6 +149,13 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
       continue;
     }
 
+    // Skip summary / total rows where all filled cells are pure numbers
+    var hasTextCell = filledCells.some(function(c) {
+      var cleaned = c.replace(/[$,%\s]/g, '');
+      return cleaned !== '' && isNaN(Number(cleaned));
+    });
+    if (!hasTextCell) continue;
+
     var rawColA = String(row[0] || '').trim();
     var rawColB = String(row[1] || '').trim();
     var rawColC = String(row[2] || '').trim();
@@ -154,6 +164,7 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
     var address = '';
     var cityRaw = '';
     var bottlings = currentProduct;
+    var dateVal = '';
 
     if (colMap.name !== undefined && colMap.name !== -1) {
       name = cellAlias_(row, colMap.name);
@@ -168,15 +179,30 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
       var customBottlings = cellAlias_(row, colMap.bottlings);
       if (customBottlings) bottlings = customBottlings;
     }
+    if (colMap.date !== undefined && colMap.date !== -1) {
+      dateVal = cellAlias_(row, colMap.date);
+    }
 
-    // Heuristic fallback for tabs like "July 2026 NY-NJ" where Col A = Product, Col B = Store Name, Col C = City
+    // Heuristic fallback for tabs where Col A = Product, Col B = Store Name, Col C = City/Item
     if (/casa\s*mexico/i.test(rawColA) && rawColB !== '') {
       bottlings = rawColA;
       name = rawColB;
       if (!cityRaw) cityRaw = rawColC;
-    } else if (!name) {
-      name = rawColB || rawColA;
-      if (!cityRaw && rawColC) cityRaw = rawColC;
+    } else if (!name || /^\d+(\.\d+)?$/.test(name.trim())) {
+      // If Col A looks like a date (e.g. 08/04/2026), use Col B as name
+      if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(rawColA)) {
+        name = rawColB;
+        if (!dateVal) dateVal = rawColA;
+      } else if (rawColB && !/^\d+(\.\d+)?$/.test(rawColB.trim())) {
+        name = rawColB;
+        if (/^\d+$/.test(rawColA) && (!bottlings || bottlings === 'Casa Mexico Tequila')) {
+          bottlings = rawColB + ' (Item #' + rawColA + ')';
+        }
+      } else if (bottlings && bottlings !== 'Casa Mexico Tequila') {
+        name = bottlings;
+      } else if (rawColA && !/^\d+(\.\d+)?$/.test(rawColA.trim())) {
+        name = rawColA;
+      }
     }
 
     var stateRaw = colMap.state !== undefined && colMap.state !== -1 ? cellAlias_(row, colMap.state) : '';
@@ -195,23 +221,20 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
     var phone = colMap.phone !== undefined && colMap.phone !== -1 ? cellAlias_(row, colMap.phone) : '';
     var website = colMap.website !== undefined && colMap.website !== -1 ? cellAlias_(row, colMap.website) : '';
 
-    var city = cityRaw;
+    var nameLower = String(name).toLowerCase();
 
-    // Skip header text rows or summary totals
-    if (String(name).toLowerCase() === 'total' || String(address).toLowerCase() === 'total' || String(name).toLowerCase() === 'mexcor florida' || String(name).toLowerCase() === 'store name' || String(name).toLowerCase() === 'retailer') continue;
+    // Skip header text rows or summary totals (e.g. "Total", "Total for Casa Mexico...", "Total for Blanco...")
+    if (!name || /^\d+(\.\d+)?$/.test(name.trim()) || nameLower === 'total' || nameLower.indexOf('total') === 0 || nameLower.indexOf('subtotal') === 0 || nameLower.indexOf('grand total') === 0 || String(address).toLowerCase() === 'total' || nameLower === 'mexcor florida' || nameLower === 'store name' || nameLower === 'retailer' || nameLower === 'customer full name' || nameLower === 'account name' || nameLower === 'customer name' || nameLower === 'customer nan' || nameLower === 'blanco' || nameLower === 'reposado' || nameLower === 'anejo' || nameLower === 'item' || nameLower === 'description size') continue;
 
     if (status && !String(status).toLowerCase().startsWith('ready')) {
       skipped.notReady++;
       continue;
     }
 
-    if (!name || (!city && !address)) {
-      skipped.invalidCoordinates++;
-      continue;
-    }
-
+    // Clean store / customer name
     var cleanName = String(name).replace(/\s*#\d+/g, '').trim();
-    if (!cleanName || cleanName.toLowerCase() === 'total') continue;
+    var cleanNameLower = cleanName.toLowerCase();
+    if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanNameLower === 'total' || cleanNameLower.indexOf('total') === 0 || cleanNameLower.indexOf('subtotal') === 0 || cleanNameLower.indexOf('grand total') === 0) continue;
 
     var uniqueId = placeId || ('CMT-' + sheetName.replace(/[^a-zA-Z0-9]/g, '') + '-' + String(i).padStart(3, '0'));
     if (seenIds[uniqueId]) {
@@ -220,7 +243,17 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
     }
     seenIds[uniqueId] = true;
 
-    var fullAddress = address ? (address + ', ' + (city || '') + (state ? (', ' + state) : '') + (postalCode ? (' ' + postalCode) : '')) : ((city || '') + (state ? (', ' + state) : ''));
+    // Fully optional address & city handling - gracefully build clean address without forcing N/A
+    var city = (cityRaw && cityRaw !== 'N/A') ? cityRaw : '';
+    var displayAddress = (address && address !== 'N/A') ? address : '';
+
+    var addrParts = [];
+    if (displayAddress) addrParts.push(displayAddress);
+    if (city && city !== displayAddress) addrParts.push(city);
+    if (state && state !== 'US' && (!displayAddress || displayAddress.indexOf(state) === -1)) addrParts.push(state);
+    if (postalCode) addrParts.push(postalCode);
+
+    var fullAddress = addrParts.length > 0 ? addrParts.join(', ') : '';
     var normType = String(premiseType).toLowerCase();
     var type = (normType.indexOf('bar') !== -1 || normType.indexOf('restaurant') !== -1 || normType.indexOf('kitchen') !== -1) ? 'bar-restaurant' : 'retail';
 
@@ -247,7 +280,7 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
       id: uniqueId,
       name: cleanName,
       address: fullAddress,
-      city: city || 'N/A',
+      city: city,
       state: state || 'US',
       postalCode: String(postalCode || ''),
       type: type,
@@ -256,23 +289,40 @@ function normalizeSheetRows_(values, sheetName, seenIds) {
       placeId: uniqueId,
       phone: phone || '',
       website: website || '',
-      distributor: (state || sheetName) + ' Distributor',
-      territory: state || sheetName,
+      distributor: (state !== 'US' ? state : sheetName) + ' Distributor',
+      territory: state !== 'US' ? state : sheetName,
       tabName: sheetName,
+      sheetGid: cleanGid,
       cases: cases,
-      bottlings: bottlings
+      bottlings: bottlings,
+      date: dateVal || ''
     });
   }
 
   return { locations: locations, skipped: skipped };
 }
 
+function normalizeRows_(values) {
+  return normalizeSheetRows_(values, 'Store Locator', {}, '0');
+}
+
 function findCol_(headers, aliases) {
   if (!headers || !aliases) return -1;
+  // 1. Exact match (case-insensitive & alphanumeric)
+  for (var i = 0; i < aliases.length; i++) {
+    var aliasClean = String(aliases[i]).toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (var j = 0; j < headers.length; j++) {
+      var hClean = String(headers[j]).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (hClean && hClean === aliasClean) return j;
+    }
+  }
+  // 2. Whole phrase match (header contains full alias string)
   for (var i = 0; i < aliases.length; i++) {
     var aliasNorm = String(aliases[i]).toLowerCase().trim();
+    if (!aliasNorm) continue;
     for (var j = 0; j < headers.length; j++) {
       var hNorm = String(headers[j]).toLowerCase().trim();
+      if (!hNorm) continue;
       if (hNorm === aliasNorm || hNorm.indexOf(aliasNorm) !== -1) {
         return j;
       }
@@ -301,10 +351,12 @@ function validateRequiredHeaders_(headers) {
     if (!found) missing.push(req);
   });
 
-  // Simple required header check
-  var hasName = headers.some(function(h) { return LOCATOR_CONFIG.headerAliases.name.indexOf(h) !== -1; });
-  var hasAddr = headers.some(function(h) { return LOCATOR_CONFIG.headerAliases.address.indexOf(h) !== -1; });
-  if (!hasName || !hasAddr) {
-    throw new Error('Missing required columns: Store Name / Address');
+  // Flexible header check - only require store/customer name
+  var hasName = headers.some(function(h) { 
+    var hNorm = String(h).toLowerCase();
+    return LOCATOR_CONFIG.headerAliases.name.some(function(alias) { return String(alias).toLowerCase() === hNorm; }) || hNorm.indexOf('customer') !== -1 || hNorm.indexOf('store') !== -1 || hNorm.indexOf('account') !== -1;
+  });
+  if (!hasName && headers.length === 0) {
+    throw new Error('Sheet missing valid data columns.');
   }
 }

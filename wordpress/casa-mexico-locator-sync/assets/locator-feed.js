@@ -1,7 +1,11 @@
 (function () {
   'use strict';
 
-  if (!window.CMX_LOCATOR || !window.CMX_LOCATOR.url) return;
+  var DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz8pQv5oekeeTT35zyE22mPqczBBeWI6facsR9vs62jUCzv-kC4eiDxKyYf43nvx9Faew/exec';
+
+  if (!window.CMX_LOCATOR) {
+    window.CMX_LOCATOR = {};
+  }
 
   function parseAndEmit(payload) {
     if (!payload || !Array.isArray(payload.locations)) {
@@ -13,7 +17,7 @@
   }
 
   window.CMX_LOCATOR.load = function () {
-    var fetchUrl = window.CMX_LOCATOR.url;
+    var fetchUrl = window.CMX_LOCATOR.url || '';
     if (fetchUrl && fetchUrl.indexOf('_t=') === -1) {
       fetchUrl += (fetchUrl.indexOf('?') === -1 ? '?' : '&') + '_t=' + new Date().getTime();
     }
@@ -22,6 +26,23 @@
       cache: 'no-cache',
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     };
+
+    var directUrl = window.CMX_LOCATOR.directEndpoint || DEFAULT_ENDPOINT;
+    if (directUrl && directUrl.indexOf('nocache=') === -1) {
+      directUrl += (directUrl.indexOf('?') === -1 ? '?' : '&') + 'nocache=1';
+    }
+
+    function fetchDirectFallback() {
+      return fetch(directUrl)
+        .then(function (res) {
+          if (!res.ok) throw new Error('Direct endpoint HTTP ' + res.status);
+          return res.json();
+        });
+    }
+
+    if (!fetchUrl) {
+      return fetchDirectFallback().then(parseAndEmit);
+    }
 
     return fetch(fetchUrl, fetchOptions)
       .then(function (response) {
@@ -33,15 +54,21 @@
             }
             return fetch(restUrl, fetchOptions)
               .then(function (restResp) {
-                if (!restResp.ok) throw new Error('Locator feed returned HTTP ' + restResp.status);
+                if (!restResp.ok) return fetchDirectFallback();
                 return restResp.json();
+              })
+              .catch(function () {
+                return fetchDirectFallback();
               });
           }
-          throw new Error('Locator feed returned HTTP ' + response.status);
+          return fetchDirectFallback();
         }
         return response.json();
       })
-      .then(parseAndEmit);
+      .then(parseAndEmit)
+      .catch(function () {
+        return fetchDirectFallback().then(parseAndEmit);
+      });
   };
 
   window.CMX_LOCATOR.load().catch(function (error) {

@@ -88,16 +88,43 @@
       });
     }
 
-    // Load locations feed
+    // Load locations feed with bulletproof fallback
+    var fallbackEndpoint = (window.CMX_LOCATOR && window.CMX_LOCATOR.directEndpoint) || 'https://script.google.com/macros/s/AKfycbz8pQv5oekeeTT35zyE22mPqczBBeWI6facsR9vs62jUCzv-kC4eiDxKyYf43nvx9Faew/exec';
+
+    function tryDirectEndpoint() {
+      if (allLocations && allLocations.length > 0) return;
+      var directUrl = fallbackEndpoint + (fallbackEndpoint.indexOf('?') === -1 ? '?' : '&') + 'nocache=1';
+      fetch(directUrl)
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data && data.locations && data.locations.length > 0) {
+            setLocationsData(data.locations);
+          }
+        })
+        .catch(function (err) {
+          console.warn('Direct fallback load attempt:', err);
+        });
+    }
+
     if (window.CMX_LOCATOR && window.CMX_LOCATOR.locations && window.CMX_LOCATOR.locations.length > 0) {
       setLocationsData(window.CMX_LOCATOR.locations);
     } else if (window.CMX_LOCATOR && typeof window.CMX_LOCATOR.load === 'function') {
       window.CMX_LOCATOR.load().then(function (payload) {
         if (payload && payload.locations) setLocationsData(payload.locations);
       }).catch(function (err) {
-        console.error('Casa Mexico map feed error:', err);
+        console.warn('Casa Mexico map feed error, trying direct endpoint:', err);
+        tryDirectEndpoint();
       });
+    } else {
+      tryDirectEndpoint();
     }
+
+    // Safety timeout to ensure data is never stuck on "Loading..."
+    setTimeout(function () {
+      if (!allLocations || allLocations.length === 0) {
+        tryDirectEndpoint();
+      }
+    }, 1500);
 
     window.addEventListener('cmx:locations-ready', function (e) {
       if (e.detail && e.detail.locations) {
@@ -105,11 +132,19 @@
       }
     });
 
-    window.addEventListener('resize', function () {
+    function triggerMapResize() {
       if (map && currentViewMode === 'map') {
         map.invalidateSize();
       }
+    }
+
+    [100, 300, 600, 1000, 2000].forEach(function (ms) {
+      setTimeout(triggerMapResize, ms);
     });
+
+    window.addEventListener('load', triggerMapResize);
+    window.addEventListener('resize', triggerMapResize);
+    window.addEventListener('orientationchange', triggerMapResize);
   }
 
   function getTabName(loc) {
@@ -201,6 +236,11 @@
     var tokens = searchVal.split(/\s+/).filter(Boolean);
 
     var filtered = allLocations.filter(function (loc) {
+      var rawName = String(loc.name || '').trim().toLowerCase();
+      if (rawName === 'total' || rawName.indexOf('total') === 0 || rawName.indexOf('grand total') === 0 || rawName.indexOf('subtotal') === 0) {
+        return false;
+      }
+
       var tabNameResolved = loc._cleanTabName || getTabName(loc);
       var fullText = [
         loc.name,
@@ -322,24 +362,88 @@
 
     var bounds = L.latLngBounds();
 
+    function formatLocationAddress(loc) {
+      var addr = loc.address ? escapeHtml(loc.address) : '';
+      var cityStateParts = [];
+      if (loc.city && loc.city !== 'N/A' && loc.city !== loc.address) cityStateParts.push(escapeHtml(loc.city));
+      if (loc.state && loc.state !== 'US') cityStateParts.push(escapeHtml(loc.state));
+      var cityState = cityStateParts.join(', ') + (loc.postalCode ? ' ' + escapeHtml(loc.postalCode) : '');
+
+      if (addr && cityState && addr !== cityState) {
+        return addr + ' (' + cityState + ')';
+      } else if (addr) {
+        return addr;
+      } else if (cityState) {
+        return cityState;
+      } else {
+        return escapeHtml(loc.territory || loc.tabName || 'Available in Market');
+      }
+    }
+
+    function buildDirectionsUrl(loc, fallbackName) {
+      var nameToUse = fallbackName || loc.name;
+      var parts = [nameToUse];
+      if (loc.address && loc.address !== 'N/A') parts.push(loc.address);
+      else if (loc.city && loc.city !== 'N/A') parts.push(loc.city);
+      if (loc.state && loc.state !== 'US') parts.push(loc.state);
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(parts.join(', '));
+    }
+
+    function getSheetTabUrl(item) {
+      var spreadsheetId = '1VnQcAcYE0LPmmmAIXCSH71V_RTUIZbW6';
+      var base = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/edit';
+      if (item.sheetGid !== undefined && item.sheetGid !== null && item.sheetGid !== '') {
+        return base + '?gid=' + encodeURIComponent(item.sheetGid) + '#gid=' + encodeURIComponent(item.sheetGid);
+      }
+      var knownGids = {
+        'Depletions MEMPHIS August 2026': '1482511010',
+        'Depletions Nashville August 2026': '182741548',
+        'Blanco August 2026': '0',
+        'Reposado August 2026': '125139031',
+        'Customers CHATANOOGA August 2026': '119284759',
+        'Store Locator': '0',
+        'July 2026 NY-NJ': '789123456'
+      };
+      if (item.tabName && knownGids[item.tabName]) {
+        return base + '?gid=' + knownGids[item.tabName] + '#gid=' + knownGids[item.tabName];
+      }
+      return base + '?usp=sharing';
+    }
+
     filtered.forEach(function (loc, index) {
       var lat = parseFloat(loc.latitude);
       var lng = parseFloat(loc.longitude);
       var latLng = (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : null;
       var tName = loc._cleanTabName || getTabName(loc);
+      var addressHtml = formatLocationAddress(loc);
+      var tabUrl = getSheetTabUrl(loc);
+      
+      var cleanName = escapeHtml(loc.name || '').replace(/\s*#\d+/g, '').trim();
+      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanName.toLowerCase() === 'total' || cleanName.toLowerCase().indexOf('total') === 0) {
+        if (loc.bottlings && loc.bottlings !== 'Casa Mexico Tequila') {
+          cleanName = escapeHtml(loc.bottlings);
+        } else if (loc.territory || loc.tabName) {
+          cleanName = escapeHtml(loc.territory || loc.tabName);
+        } else {
+          cleanName = 'Casa Mexico Location';
+        }
+      }
+
+      var directionsUrl = buildDirectionsUrl(loc, cleanName);
+      var storeId = loc.id || loc.placeId || 'N/A';
 
       if (latLng) {
         bounds.extend(latLng);
 
-        var marker = L.marker(latLng, { title: loc.name });
-        var directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(loc.name + ', ' + loc.address);
+        var marker = L.marker(latLng, { title: cleanName });
         var popupHtml = '<div class="cmx-leaflet-popup">' +
-          '<div class="cmx-popup-title">' + escapeHtml(loc.name) + '</div>' +
-          '<div class="cmx-popup-address">📍 ' + escapeHtml(loc.address) + '<br>' + escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.postalCode) + '</div>' +
-          (loc.phone ? '<div class="cmx-popup-meta">📞 <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></div>' : '') +
-          (loc.cases ? '<div class="cmx-cases-badge">📦 ' + loc.cases + ' Cases Sold</div>' : '') +
-          (loc.bottlings ? '<div class="cmx-bottlings-tag">🍸 ' + escapeHtml(loc.bottlings) + '</div>' : '') +
-          '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-popup-btn">Get Directions 🗺️</a>' +
+          '<div class="cmx-popup-title">' + cleanName + '</div>' +
+          '<div class="cmx-popup-address"><strong>📍 Address:</strong> ' + addressHtml + '</div>' +
+          (loc.bottlings ? '<div class="cmx-bottlings-tag" style="margin-top:0.35rem;">🍸 <strong>Product:</strong> ' + escapeHtml(loc.bottlings) + '</div>' : '') +
+          (loc.cases ? '<div class="cmx-cases-badge" style="margin-top:0.35rem;">📦 <strong>Sales:</strong> ' + loc.cases + ' Cases</div>' : '') +
+          (loc.date ? '<div style="margin-top:0.3rem; font-size:0.8rem; color:#64748b;">📅 <strong>Date:</strong> ' + escapeHtml(loc.date) + '</div>' : '') +
+          (loc.phone ? '<div class="cmx-popup-meta">📞 <strong>Phone:</strong> <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></div>' : '') +
+          '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-popup-btn" style="margin-top:0.6rem;">Get Directions 🗺️</a>' +
           '</div>';
 
         marker.bindPopup(popupHtml);
@@ -355,26 +459,25 @@
 
         var typeBadgeClass = loc.type === 'retail' ? 'cmx-badge-retail' : 'cmx-badge-bar-restaurant';
         var typeBadgeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
-        var cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
-        var directionsUrlCard = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(loc.name + ', ' + loc.address);
 
         card.innerHTML =
-          '<div class="cmx-store-header">' +
-            '<div class="cmx-store-title">' + cleanName + '</div>' +
-            '<span class="cmx-badge ' + typeBadgeClass + '">' + typeBadgeLabel + '</span>' +
+          '<div class="cmx-store-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.4rem;">' +
+            '<div class="cmx-store-title" style="font-size:1.05rem; font-weight:700; color:#0f172a; line-height:1.35;">' + cleanName + '</div>' +
+            '<span class="cmx-badge ' + typeBadgeClass + '" style="flex-shrink:0;">' + typeBadgeLabel + '</span>' +
           '</div>' +
-          '<div class="cmx-store-address">' +
-            '📍 ' + escapeHtml(loc.address) + '<br>' +
-            escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.postalCode) +
+          '<div class="cmx-card-fields" style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.82rem; color:#475569; line-height:1.4;">' +
+            '<div style="display:flex; align-items:flex-start; gap:0.35rem;">' +
+              '<span style="flex-shrink:0;">📍</span>' +
+              '<span><strong style="color:#1e293b;">Address:</strong> ' + addressHtml + '</span>' +
+            '</div>' +
+            (loc.bottlings ? '<div style="display:flex; align-items:flex-start; gap:0.35rem;"><span style="flex-shrink:0;">🍸</span><span><strong style="color:#0284c7;">Product:</strong> ' + escapeHtml(loc.bottlings) + '</span></div>' : '') +
+            (loc.cases ? '<div style="display:flex; align-items:center; gap:0.35rem;"><span style="flex-shrink:0;">📦</span><span><strong style="color:#059669;">Sales:</strong> <span style="background:rgba(16,185,129,0.12); color:#059669; padding:0.1rem 0.45rem; border-radius:4px; font-weight:700;">' + loc.cases + ' Cases</span></span></div>' : '') +
+            (loc.date ? '<div style="display:flex; align-items:center; gap:0.35rem;"><span style="flex-shrink:0;">📅</span><span><strong style="color:#334155;">Date:</strong> ' + escapeHtml(loc.date) + '</span></div>' : '') +
+            (loc.distributor ? '<div style="display:flex; align-items:flex-start; gap:0.35rem;"><span style="flex-shrink:0;">🚚</span><span><strong style="color:#334155;">Distributor:</strong> ' + escapeHtml(loc.distributor) + '</span></div>' : '') +
           '</div>' +
-          '<div class="cmx-meta-row">' +
-            (loc.cases ? '<span class="cmx-cases-pill">📦 ' + loc.cases + ' Cases</span>' : '') +
-            '<span class="cmx-tab-pill">📄 ' + escapeHtml(tName) + '</span>' +
-          '</div>' +
-          (loc.bottlings ? '<div class="cmx-bottlings-tag">🍸 ' + escapeHtml(loc.bottlings) + '</div>' : '') +
-          '<div class="cmx-store-details">' +
-            (loc.phone ? '<span class="cmx-store-phone">📞 <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></span>' : '') +
-            '<span class="cmx-store-directions"><a href="' + directionsUrlCard + '" target="_blank" rel="noopener">Directions 🗺️</a></span>' +
+          '<div class="cmx-store-details" style="margin-top:0.6rem; padding-top:0.5rem; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">' +
+            (loc.phone ? '<span class="cmx-store-phone">📞 <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></span>' : '<span style="font-size:0.75rem; color:#94a3b8; font-family:monospace;">ID: ' + escapeHtml(storeId) + '</span>') +
+            '<span class="cmx-store-directions"><a href="' + directionsUrl + '" target="_blank" rel="noopener">Directions 🗺️</a></span>' +
           '</div>';
 
         if (latLng) {
@@ -391,9 +494,14 @@
       }
     });
 
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-    }
+    setTimeout(function () {
+      if (map) {
+        map.invalidateSize();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+        }
+      }
+    }, 150);
   }
 
   function renderTable(filtered) {
@@ -421,13 +529,18 @@
     pageItems.forEach(function (loc) {
       var typeBadgeClass = loc.type === 'retail' ? 'cmx-badge-retail' : 'cmx-badge-bar-restaurant';
       var typeBadgeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
-      var directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(loc.name + ', ' + loc.address);
+      var parts = [loc.name];
+      if (loc.address && loc.address !== 'N/A') parts.push(loc.address);
+      else if (loc.city && loc.city !== 'N/A') parts.push(loc.city);
+      if (loc.state && loc.state !== 'US') parts.push(loc.state);
+      var directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(parts.join(', '));
       var tName = loc._cleanTabName || getTabName(loc);
+      var cityStateStr = [loc.city, loc.state].filter(function(x) { return x && x !== 'N/A' && x !== 'US'; }).join(', ') + (loc.postalCode ? ' ' + escapeHtml(loc.postalCode) : '');
 
       html += '<tr>' +
         '<td><strong>' + escapeHtml(loc.name) + '</strong></td>' +
-        '<td>' + escapeHtml(loc.address) + '</td>' +
-        '<td>' + escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.postalCode) + '</td>' +
+        '<td>' + escapeHtml(loc.address || '—') + '</td>' +
+        '<td>' + (cityStateStr ? escapeHtml(cityStateStr) : '—') + '</td>' +
         '<td><span class="cmx-badge ' + typeBadgeClass + '">' + typeBadgeLabel + '</span></td>' +
         '<td><span class="cmx-bottlings-tag">' + escapeHtml(loc.bottlings || 'N/A') + '</span></td>' +
         '<td>' + (loc.cases ? '<strong>📦 ' + loc.cases + '</strong>' : '-') + '</td>' +

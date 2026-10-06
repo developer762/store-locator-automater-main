@@ -18,15 +18,7 @@ function createAppsScriptContext() {
       sheetName: 'Store Locator Feed',
       cacheSeconds: 300,
       requiredHeaders: [
-        'Locator Name',
-        'City',
-        'State',
-        'Postal Code',
-        'Premise Type',
-        'Publish Status',
-        'Latitude',
-        'Longitude',
-        'Final Address'
+        'Locator Name'
       ]
     },
     Utilities: {

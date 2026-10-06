@@ -67,6 +67,30 @@ test('sanitizes invalid state text (e.g. store names parsed as state)', () => {
   assert.equal(result.locations[0].state, 'TX'); // Falls back to inferred tab state TX instead of store name
 });
 
+test('publishes successfully when Address and City columns are removed/absent (e.g. Blanco August 2026 format)', () => {
+  const customHeaders = ['Transaction date', 'Customer name', 'Item Description', 'Quantity'];
+  const sheetData = [
+    ['Casa Mexico - Blanco'],
+    [''],
+    customHeaders,
+    ['08/04/2026', 'Bob\'s Liquors DL', 'Case of 6 bottles', '1.00'],
+    ['08/13/2026', 'Community Spirits', 'Case of 6 bottles', '3.00'],
+    ['08/16/2026', 'High Spirits', 'Case of 6 bottles', '3.00'],
+    ['08/31/2026', 'City Wide Liquor', 'Case of 6 bottles', '1.00'],
+  ];
+
+  const result = context.normalizeSheetRows_(sheetData, 'Blanco August 2026', {});
+
+  assert.equal(result.locations.length, 4);
+  assert.equal(result.locations[0].name, 'Bob\'s Liquors DL');
+  assert.equal(result.locations[0].cases, 1);
+  assert.equal(result.locations[0].bottlings, 'Case of 6 bottles');
+  assert.ok(typeof result.locations[0].latitude === 'number' && !isNaN(result.locations[0].latitude));
+  assert.ok(typeof result.locations[0].longitude === 'number' && !isNaN(result.locations[0].longitude));
+  assert.equal(result.locations[1].name, 'Community Spirits');
+  assert.equal(result.locations[1].cases, 3);
+});
+
 test('rejects non-ready, empty, and duplicate rows', () => {
   const result = context.normalizeSheetRows_([
     headers,
@@ -80,3 +104,30 @@ test('rejects non-ready, empty, and duplicate rows', () => {
   assert.equal(result.skipped.duplicate, 1);
   assert.equal(result.skipped.notReady, 1);
 });
+
+test('handles depletion inventory tabs like Depletions MEMPHIS August 2026 and ignores Total rows', () => {
+  const sheetData = [
+    ['Athens Memphis'],
+    [''],
+    ['1989', 'SWIRL/LIEBER', '', '', '', 'All Numbers are Case Equivalence'],
+    [''],
+    ['ITEM', 'DESCRIPTION SIZE', 'CASE PACK', 'BEG INV', 'RECEIPTS', 'VARIANCE', 'TRANSFERS', 'VND/HSE', 'SALES', 'END INV', 'ON ORDER'],
+    ['42311730', 'CASA MEXICC 750ML', '6', '9.00', '0.00', '0.00', '0.00', '0.00', '0.00', '9.00', '0.00'],
+    ['42311731', 'CASA MEXICC 750ML', '6', '9.00', '0.00', '0.00', '0.00', '0.00', '2.00', '7.00', '0.00'],
+    ['42311732', 'CASA MEXICC 750ML', '6', '21.00', '0.00', '0.00', '0.00', '0.00', '1.00', '20.00', '0.00'],
+    ['42311733', 'CASA MEXICC 750ML', '6', '9.00', '0.00', '0.00', '0.00', '0.00', '0.00', '9.00', '0.00'],
+    ['42314492', 'CASA MEXICC 750ML', '6', '17.00', '0.00', '-1.00', '0.00', '0.00', '1.00', '15.00', '0.00'],
+    ['', '', '', '98.25009', '0.00', '-1.00', '0.00', '0.83332', '4.00', '75.08343', '0.00'], // TOTAL ROW
+  ];
+
+  const result = context.normalizeSheetRows_(sheetData, 'Depletions MEMPHIS August 2026', {});
+
+  // Should have 5 valid items, exactly 0 total rows!
+  assert.equal(result.locations.length, 5);
+  // Title should not be 0, 1, 2, 4
+  assert.ok(!/^\d+(\.\d+)?$/.test(result.locations[0].name));
+  assert.equal(result.locations[0].name, 'CASA MEXICC 750ML');
+  assert.equal(result.locations[1].cases, 2);
+  assert.equal(result.locations[2].cases, 1);
+});
+

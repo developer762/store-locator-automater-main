@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Casa Mexico Store Locator Automater Dashboard</title>
+  <link rel="icon" type="image/png" href="logo-favicon-large-192x192.png">
+  <link rel="shortcut icon" type="image/png" href="logo-favicon-large-192x192.png">
+  <link rel="apple-touch-icon" href="logo-favicon-large-192x192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -670,11 +673,37 @@
     }
 
     @media (max-width: 480px) {
+      .container {
+        padding: 0 0.5rem;
+      }
       .stats-grid {
         grid-template-columns: 1fr;
       }
       .header-actions {
         grid-template-columns: 1fr;
+      }
+      .filter-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+      .search-box {
+        grid-column: 1 / -1;
+      }
+      .store-card {
+        padding: 0.85rem;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+      }
+      .store-header {
+        min-width: 0;
+      }
+      .store-name {
+        min-width: 0;
+        word-break: break-word;
+        overflow-wrap: anywhere;
       }
     }
 
@@ -703,8 +732,8 @@
   <header>
     <div class="header-container">
       <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <div class="brand-icon" style="background: #ffffff; padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; width: auto; height: 44px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="logo-casa-mexico.svg" alt="Casa Mexico Logo" style="height: 32px; width: auto; max-width: 65px; object-fit: contain;">
         </div>
         <div class="brand-title">
           <h1>Casa Mexico Store Locator</h1>
@@ -739,8 +768,8 @@
       </div>
       <div class="stat-card stat-excluded">
         <div class="stat-label">Workbook Total</div>
-        <div class="stat-value" id="stat-workbook">1503</div>
-        <div class="stat-desc">Rows in July 2026 workbook</div>
+        <div class="stat-value" id="stat-workbook">-</div>
+        <div class="stat-desc">Total rows parsed from Google Sheet</div>
       </div>
       <div class="stat-card stat-cache">
         <div class="stat-label">Feed Status</div>
@@ -899,6 +928,8 @@
       renderStores();
     }
 
+    const LIVE_FEED_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz8pQv5oekeeTT35zyE22mPqczBBeWI6facsR9vs62jUCzv-kC4eiDxKyYf43nvx9Faew/exec';
+
     async function fetchFeedData(refresh = false) {
       const btnRefresh = document.getElementById('btn-force-refresh');
       if (btnRefresh) btnRefresh.innerHTML = '⏳ Refreshing...';
@@ -917,28 +948,51 @@
       try {
         logMsg(refresh ? 'Fetching fresh feed from Apps Script engine with live cache bypass (nocache=1)...' : 'Loading feed data...');
         let data = null;
-        try {
-          const res = await fetch('/api/feed' + (refresh ? '?refresh=1&nocache=1&fresh=1' : ''));
-          if (res.ok) data = await res.json();
-        } catch (e) {}
 
+        // 1. Try Live Google Apps Script Endpoint First
+        try {
+          const liveUrl = LIVE_FEED_ENDPOINT + (refresh ? '?nocache=1&fresh=1' : '');
+          const liveRes = await fetch(liveUrl);
+          if (liveRes.ok) {
+            data = await liveRes.json();
+            logMsg('Successfully fetched from live Google Apps Script endpoint.');
+          }
+        } catch (e) {
+          logMsg('Direct Apps Script fetch notice: ' + e.message);
+        }
+
+        // 2. Try local dev-server if running on port 3000
         if (!data || !data.locations) {
-          logMsg('Fetching live feed directly from Apps Script URL...');
           try {
-            const liveRes = await fetch('https://script.google.com/macros/s/AKfycbwTmH7uI7FZc5raOsDfIv6y6JgTNYXRj7Q5UR-njQnqj_2xOLhAjfo9v4V4ogNC-TqA5w/exec' + (refresh ? '?nocache=1&fresh=1' : ''));
-            if (liveRes.ok) data = await liveRes.json();
+            if (window.location.port === '3000') {
+              const res = await fetch('/api/feed' + (refresh ? '?refresh=1&nocache=1&fresh=1' : ''));
+              if (res.ok) data = await res.json();
+            }
           } catch (e) {}
         }
 
+        // 3. Fallback to local JSON files
         if (!data || !data.locations) {
-          logMsg('Falling back to local casa-mexico-locations.json...');
-          const fallbackRes = await fetch('../casa-mexico-locations.json');
-          data = await fallbackRes.json();
+          logMsg('Loading local JSON fallback...');
+          const fallbackPaths = ['./casa-mexico-locations.json', '../casa-mexico-locations.json', 'casa-mexico-locations.json'];
+          for (const fPath of fallbackPaths) {
+            try {
+              const fbRes = await fetch(fPath);
+              if (fbRes.ok) {
+                data = await fbRes.json();
+                if (data && data.locations) break;
+              }
+            } catch (e) {}
+          }
         }
-        
+
+        if (!data || !data.locations) {
+          throw new Error('Unable to retrieve store location data. Please verify your connection or click Force Refresh.');
+        }
+
         globalFeedData = data;
         
-        const publishedCount = data.count || 0;
+        const publishedCount = data.count || data.locations.length || 0;
         const skippedAwaiting = data.skipped ? (data.skipped.invalidCoordinates || 0) : 0;
         const totalSkipped = data.skipped ? ((data.skipped.notReady || 0) + (data.skipped.invalidCoordinates || 0) + (data.skipped.duplicate || 0)) : 0;
         const totalRows = data.rawRowCount || (publishedCount + totalSkipped);
@@ -955,26 +1009,36 @@
         renderSalesTab(data.locations || []);
         renderSheetsExplorer(data.locations || []);
         resetAndRenderStores();
-        logMsg(`Feed updated successfully. ${data.count} publishable locations returned.`);
-        if (refresh) showToast(`Force Refresh Complete! ${data.count} locations updated cleanly.`, 'success');
+        logMsg(`Feed loaded successfully. ${publishedCount} publishable locations returned.`);
+        if (refresh) showToast(`Force Refresh Complete! ${publishedCount} locations updated cleanly.`, 'success');
       } catch (err) {
         logMsg('Error loading feed: ' + err.message);
-        showToast('Error fetching feed: ' + err.message, 'error');
+        showToast('Error loading feed: ' + err.message, 'error');
+        if (container) {
+          container.innerHTML = `
+            <div class="loader-card" style="border-color: rgba(244,63,94,0.3);">
+              <div style="font-size: 2rem;">⚠️</div>
+              <div style="font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:700; color:#fff;">Could not load feed</div>
+              <div style="font-size:0.85rem; color:var(--text-muted); max-width: 400px;">${escapeHtml(err.message)}</div>
+              <button class="btn btn-primary" style="margin-top: 1rem;" onclick="fetchFeedData(true)">🔄 Retry Connection</button>
+            </div>
+          `;
+        }
       } finally {
         if (btnRefresh) btnRefresh.innerHTML = '🔄 Force Refresh';
       }
     }
 
     async function fetchRawStats() {
-      try {
-        const res = await fetch('/api/raw-stats');
-        if (res.ok) {
-          const stats = await res.json();
-          if (stats.awaitingGeocode !== undefined) document.getElementById('stat-awaiting').textContent = stats.awaitingGeocode;
-          if (stats.totalWorkbookRows !== undefined) document.getElementById('stat-workbook').textContent = stats.totalWorkbookRows;
-        }
-      } catch (err) {
-        // Fallback numbers calculated directly from feed payload
+      if (window.location.port === '3000') {
+        try {
+          const res = await fetch('/api/raw-stats');
+          if (res.ok) {
+            const stats = await res.json();
+            if (stats.awaitingGeocode !== undefined) document.getElementById('stat-awaiting').textContent = stats.awaitingGeocode;
+            if (stats.totalWorkbookRows !== undefined) document.getElementById('stat-workbook').textContent = stats.totalWorkbookRows;
+          }
+        } catch (err) {}
       }
     }
 
@@ -1144,12 +1208,146 @@
       }
     }
 
+    function formatCardAddress(loc) {
+      var addr = loc.address ? escapeHtml(loc.address) : '';
+      var cityStateParts = [];
+      if (loc.city && loc.city !== 'N/A' && loc.city !== loc.address) cityStateParts.push(escapeHtml(loc.city));
+      if (loc.state && loc.state !== 'US') cityStateParts.push(escapeHtml(loc.state));
+      var cityState = cityStateParts.join(', ') + (loc.postalCode ? ' ' + escapeHtml(loc.postalCode) : '');
+
+      if (addr && cityState && addr !== cityState) {
+        return `${addr} (${cityState})`;
+      } else if (addr) {
+        return addr;
+      } else if (cityState) {
+        return cityState;
+      } else {
+        return escapeHtml(loc.territory || loc.tabName || 'Available in Market');
+      }
+    }
+
+    function renderStoreCardHtml(loc) {
+      const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
+      const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
+      let cleanName = escapeHtml(loc.name || '').replace(/\s*#\d+/g, '').trim();
+      
+      // Informative title if name is just a number (e.g. sales digit 0, 1, 2) or 'total' or empty
+      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanName.toLowerCase() === 'total' || cleanName.toLowerCase().startsWith('total')) {
+        if (loc.bottlings && loc.bottlings !== 'Casa Mexico Tequila') {
+          cleanName = escapeHtml(loc.bottlings);
+        } else if (loc.territory || loc.tabName) {
+          cleanName = escapeHtml(loc.territory || loc.tabName);
+        } else {
+          cleanName = 'Casa Mexico Location';
+        }
+      }
+
+      const storeId = loc.id || loc.placeId || 'N/A';
+      
+      let formattedDate = loc.date || '';
+      if (formattedDate && formattedDate.includes('GMT')) {
+        try {
+          const dObj = new Date(formattedDate);
+          if (!isNaN(dObj.getTime())) {
+            formattedDate = (dObj.getMonth() + 1).toString().padStart(2, '0') + '/' + dObj.getDate().toString().padStart(2, '0') + '/' + dObj.getFullYear();
+          }
+        } catch (e) {}
+      }
+
+      const directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(cleanName + ' ' + (loc.address || loc.city || loc.state || ''));
+      
+      function getSheetTabUrl(item) {
+        const spreadsheetId = '1VnQcAcYE0LPmmmAIXCSH71V_RTUIZbW6';
+        const base = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/edit';
+        if (item.sheetGid !== undefined && item.sheetGid !== null && item.sheetGid !== '') {
+          return base + '?gid=' + encodeURIComponent(item.sheetGid) + '#gid=' + encodeURIComponent(item.sheetGid);
+        }
+        const knownGids = {
+          'Depletions MEMPHIS August 2026': '1482511010',
+          'Depletions Nashville August 2026': '182741548',
+          'Blanco August 2026': '0',
+          'Reposado August 2026': '125139031',
+          'Customers CHATANOOGA August 2026': '119284759',
+          'Store Locator': '0',
+          'July 2026 NY-NJ': '789123456'
+        };
+        if (item.tabName && knownGids[item.tabName]) {
+          return base + '?gid=' + knownGids[item.tabName] + '#gid=' + knownGids[item.tabName];
+        }
+        return base + '?usp=sharing';
+      }
+
+      const sheetUrl = getSheetTabUrl(loc);
+
+      return `
+        <div>
+          <div class="store-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; gap:0.5rem;">
+            <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.2rem 0.55rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25); max-width:65%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Store ID: ${escapeHtml(storeId)}"><strong style="color:var(--text-dim);">ID:</strong> ${escapeHtml(storeId)}</span>
+            <span class="badge ${typeClass}" style="flex-shrink:0;" title="Premise Type: ${typeLabel}">${typeLabel}</span>
+          </div>
+          
+          <div class="store-name" style="font-size:1.15rem; font-weight:700; color:#ffffff; line-height:1.35; margin-bottom:0.75rem;">${cleanName}</div>
+
+          <div style="display:flex; flex-direction:column; gap:0.45rem; font-size:0.83rem; line-height:1.45;">
+            <div style="color:var(--text-muted); display:flex; align-items:flex-start; gap:0.4rem;">
+              <span style="flex-shrink:0;">📍</span>
+              <span><strong style="color:var(--text-main);">Address:</strong> ${formatCardAddress(loc)}</span>
+            </div>
+
+            ${loc.bottlings ? `
+            <div style="color:var(--text-muted); display:flex; align-items:flex-start; gap:0.4rem;">
+              <span style="flex-shrink:0;">🍸</span>
+              <span><strong style="color:#38bdf8;">Product:</strong> ${escapeHtml(loc.bottlings)}</span>
+            </div>` : ''}
+
+            ${loc.cases ? `
+            <div style="color:var(--text-muted); display:flex; align-items:center; gap:0.4rem;">
+              <span style="flex-shrink:0;">📦</span>
+              <span><strong style="color:#34d399;">Sales Volume:</strong> <span style="background:rgba(52,211,153,0.15); color:#34d399; padding:0.1rem 0.5rem; border-radius:4px; font-weight:700;">${loc.cases} Case${loc.cases === 1 ? '' : 's'}</span></span>
+            </div>` : ''}
+
+            ${formattedDate ? `
+            <div style="color:var(--text-muted); display:flex; align-items:center; gap:0.4rem;">
+              <span style="flex-shrink:0;">📅</span>
+              <span><strong style="color:var(--text-main);">Date:</strong> ${escapeHtml(formattedDate)}</span>
+            </div>` : ''}
+
+            ${loc.distributor ? `
+            <div style="color:var(--text-muted); display:flex; align-items:flex-start; gap:0.4rem;">
+              <span style="flex-shrink:0;">🚚</span>
+              <span><strong style="color:var(--text-main);">Distributor:</strong> ${escapeHtml(loc.distributor)} ${loc.territory && loc.territory !== loc.state ? `(${escapeHtml(loc.territory)})` : ''}</span>
+            </div>` : ''}
+
+            ${loc.phone ? `
+            <div style="color:var(--text-muted); display:flex; align-items:center; gap:0.4rem;">
+              <span style="flex-shrink:0;">📞</span>
+              <span><strong style="color:var(--text-main);">Phone:</strong> <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></span>
+            </div>` : ''}
+
+            ${loc.website ? `
+            <div style="margin-top:0.25rem;">
+              <a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.78rem; color:#818cf8; background:rgba(99,102,241,0.12); padding:0.2rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 <strong>Website</strong></a>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <div style="margin-top:0.85rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+          <span style="color:var(--text-dim); font-family:monospace;" title="GPS Coordinates">🌐 ${typeof loc.latitude === 'number' ? loc.latitude.toFixed(4) : '39.8283'}, ${typeof loc.longitude === 'number' ? loc.longitude.toFixed(4) : '-98.5795'}</span>
+          <a href="${directionsUrl}" target="_blank" rel="noopener" style="color:#38bdf8; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem;">Directions 🗺️</a>
+        </div>
+      `;
+    }
+
     function renderSheetExplorerStores(tabName, locations) {
       const container = document.getElementById('sheet-explorer-container');
       if (!container) return;
       container.innerHTML = '';
 
-      const tabStores = locations.filter(l => l.tabName === tabName);
+      const tabStores = locations.filter(l => {
+        const rawName = String(l.name || '').trim().toLowerCase();
+        if (rawName === 'total' || rawName.startsWith('total') || rawName.startsWith('grand total') || rawName.startsWith('subtotal')) return false;
+        return l.tabName === tabName;
+      });
       let sheetShowMoreWrap = document.getElementById('sheet-show-more-wrap');
 
       if (tabStores.length === 0) {
@@ -1161,39 +1359,9 @@
       const pageItems = tabStores.slice(0, visibleSheetStoresCount);
 
       pageItems.forEach(loc => {
-        const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
-        const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
-        const cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
-        const storeId = loc.id || loc.placeId || 'N/A';
-        const phoneHtml = loc.phone ? `<div style="margin-top:0.4rem; font-size:0.82rem; color:var(--text-muted);">📞 <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></div>` : '';
-        const websiteHtml = loc.website ? `<div style="margin-top:0.3rem;"><a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-block; font-size:0.78rem; color:#6366f1; background:rgba(99,102,241,0.12); padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 Website</a></div>` : '';
-
         const card = document.createElement('div');
         card.className = 'store-card';
-        card.innerHTML = `
-          <div>
-            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.6rem; margin-bottom:0.8rem;">
-              <div style="display:flex; justify-content:space-between; width:100%; align-items:center; gap:0.75rem;">
-                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.2rem 0.55rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25); max-width:68%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Store ID: ${escapeHtml(storeId)}">${escapeHtml(storeId)}</span>
-                <span class="badge ${typeClass}" style="flex-shrink:0;" title="Premise Type: ${typeLabel}">${typeLabel}</span>
-              </div>
-              <div class="store-name" style="font-size:1.15rem; line-height:1.3; margin-top:0.3rem;">${cleanName}</div>
-            </div>
-            <div class="store-address" style="margin-top:0.5rem;">
-              📍 ${escapeHtml(loc.address)}<br>
-              ${escapeHtml(loc.city)}, ${escapeHtml(loc.state)} ${escapeHtml(loc.postalCode)}
-            </div>
-            ${phoneHtml}
-            ${websiteHtml}
-          </div>
-          <div style="margin-top:0.8rem;">
-            <div class="store-meta">
-              <span class="coordinates" title="Map Coordinates">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span>
-              ${loc.cases ? `<span class="cases-tag" title="Cases Volume: ${loc.cases}">📦 ${loc.cases} cases</span>` : ''}
-            </div>
-            ${loc.bottlings ? `<div class="bottlings-list" title="Products Stocked: ${escapeHtml(loc.bottlings)}">🍸 ${escapeHtml(loc.bottlings)}</div>` : ''}
-          </div>
-        `;
+        card.innerHTML = renderStoreCardHtml(loc);
         container.appendChild(card);
       });
 
@@ -1238,7 +1406,12 @@
       container.innerHTML = '';
 
       let filtered = globalFeedData.locations.filter(loc => {
-        const fullText = [loc.name, loc.address, loc.city, loc.state, loc.bottlings, loc.tabName, loc.territory].join(' ').toLowerCase();
+        const rawName = String(loc.name || '').trim().toLowerCase();
+        if (rawName === 'total' || rawName.startsWith('total') || rawName.startsWith('grand total') || rawName.startsWith('subtotal')) {
+          return false;
+        }
+
+        const fullText = [loc.name, loc.address, loc.city, loc.state, loc.bottlings, loc.tabName, loc.territory, loc.date].join(' ').toLowerCase();
         const matchesSearch = !searchTerm || fullText.includes(searchTerm);
         const matchesTab = !selectedTab || loc.tabName === selectedTab;
         const matchesState = !selectedState || loc.state === selectedState;
@@ -1256,43 +1429,9 @@
       const pageItems = filtered.slice(0, visibleCount);
 
       pageItems.forEach(loc => {
-        const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
-        const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
-        const cleanName = escapeHtml(loc.name).replace(/\s*#\d+/g, '');
-        const storeId = loc.id || loc.placeId || 'N/A';
-        const phoneHtml = loc.phone ? `<div style="margin-top:0.4rem; font-size:0.82rem; color:var(--text-muted);">📞 <a href="tel:${escapeHtml(loc.phone)}" style="color:var(--accent-cyan); text-decoration:none;">${escapeHtml(loc.phone)}</a></div>` : '';
-        const websiteHtml = loc.website ? `<div style="margin-top:0.3rem;"><a href="${escapeHtml(loc.website)}" target="_blank" rel="noopener" style="display:inline-block; font-size:0.78rem; color:#6366f1; background:rgba(99,102,241,0.12); padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none; border:1px solid rgba(99,102,241,0.3);">🌐 Website</a></div>` : '';
-        const distHtml = loc.distributor ? `<div style="margin-top:0.4rem; font-size:0.78rem; color:var(--text-dim);">🚚 ${escapeHtml(loc.distributor)} ${loc.territory ? `(${escapeHtml(loc.territory)})` : ''}</div>` : '';
-        const tabHtml = loc.tabName ? `<div style="margin-top:0.3rem;"><span style="font-size:0.72rem; color:#c084fc; background:rgba(192,132,252,0.12); padding:0.15rem 0.5rem; border-radius:4px; border:1px solid rgba(192,132,252,0.25);">📄 ${escapeHtml(loc.tabName)}</span></div>` : '';
-
         const card = document.createElement('div');
         card.className = 'store-card';
-        card.innerHTML = `
-          <div>
-            <div class="store-header" style="flex-direction:column; align-items:flex-start; gap:0.6rem; margin-bottom:0.8rem;">
-              <div style="display:flex; justify-content:space-between; width:100%; align-items:center; gap:0.75rem;">
-                <span style="font-size:0.7rem; font-family:monospace; color:var(--accent-amber); background:rgba(245,158,11,0.12); padding:0.2rem 0.55rem; border-radius:4px; border:1px solid rgba(245,158,11,0.25); max-width:68%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(storeId)}">${escapeHtml(storeId)}</span>
-                <span class="badge ${typeClass}" style="flex-shrink:0;">${typeLabel}</span>
-              </div>
-              <div class="store-name" style="font-size:1.15rem; line-height:1.3; margin-top:0.3rem;">${cleanName}</div>
-            </div>
-            <div class="store-address" style="margin-top:0.5rem;">
-              📍 ${escapeHtml(loc.address)}<br>
-              ${escapeHtml(loc.city)}, ${escapeHtml(loc.state)} ${escapeHtml(loc.postalCode)}
-            </div>
-            ${phoneHtml}
-            ${websiteHtml}
-            ${distHtml}
-            ${tabHtml}
-          </div>
-          <div style="margin-top:0.8rem;">
-            <div class="store-meta">
-              <span class="coordinates">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span>
-              ${loc.cases ? `<span class="cases-tag">📦 ${loc.cases} cases</span>` : ''}
-            </div>
-            ${loc.bottlings ? `<div class="bottlings-list">🍸 ${escapeHtml(loc.bottlings)}</div>` : ''}
-          </div>
-        `;
+        card.innerHTML = renderStoreCardHtml(loc);
         container.appendChild(card);
       });
 
