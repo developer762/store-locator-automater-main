@@ -1226,13 +1226,23 @@
       }
     }
 
+    function isTotalSummaryRow(str) {
+      if (!str) return false;
+      const s = String(str).trim().toLowerCase();
+      if (s === 'total' || s === 'grand total' || s === 'subtotal' || s === 'total sales' || s === 'total volume') return true;
+      if (/^(total|subtotal|grand total)\s*[:\-\_]/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+for\b/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+with\b/i.test(s)) return true;
+      return false;
+    }
+
     function renderStoreCardHtml(loc) {
       const typeClass = loc.type === 'retail' ? 'badge-retail' : 'badge-bar-restaurant';
       const typeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
       let cleanName = escapeHtml(loc.name || '').replace(/\s*#\d+/g, '').trim();
       
-      // Informative title if name is just a number (e.g. sales digit 0, 1, 2) or 'total' or empty
-      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanName.toLowerCase() === 'total' || cleanName.toLowerCase().startsWith('total')) {
+      // Informative title if name is just a number (e.g. sales digit 0, 1, 2) or total summary or empty
+      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || isTotalSummaryRow(cleanName)) {
         if (loc.bottlings && loc.bottlings !== 'Casa Mexico Tequila') {
           cleanName = escapeHtml(loc.bottlings);
         } else if (loc.territory || loc.tabName) {
@@ -1344,8 +1354,8 @@
       container.innerHTML = '';
 
       const tabStores = locations.filter(l => {
-        const rawName = String(l.name || '').trim().toLowerCase();
-        if (rawName === 'total' || rawName.startsWith('total') || rawName.startsWith('grand total') || rawName.startsWith('subtotal')) return false;
+        const rawName = String(l.name || '').trim();
+        if (isTotalSummaryRow(rawName)) return false;
         return l.tabName === tabName;
       });
       let sheetShowMoreWrap = document.getElementById('sheet-show-more-wrap');
@@ -1406,8 +1416,8 @@
       container.innerHTML = '';
 
       let filtered = globalFeedData.locations.filter(loc => {
-        const rawName = String(loc.name || '').trim().toLowerCase();
-        if (rawName === 'total' || rawName.startsWith('total') || rawName.startsWith('grand total') || rawName.startsWith('subtotal')) {
+        const rawName = String(loc.name || '').trim();
+        if (isTotalSummaryRow(rawName)) {
           return false;
         }
 

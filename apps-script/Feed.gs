@@ -224,7 +224,7 @@ function normalizeSheetRows_(values, sheetName, seenIds, sheetGid) {
     var nameLower = String(name).toLowerCase();
 
     // Skip header text rows or summary totals (e.g. "Total", "Total for Casa Mexico...", "Total for Blanco...")
-    if (!name || /^\d+(\.\d+)?$/.test(name.trim()) || nameLower === 'total' || nameLower.indexOf('total') === 0 || nameLower.indexOf('subtotal') === 0 || nameLower.indexOf('grand total') === 0 || String(address).toLowerCase() === 'total' || nameLower === 'mexcor florida' || nameLower === 'store name' || nameLower === 'retailer' || nameLower === 'customer full name' || nameLower === 'account name' || nameLower === 'customer name' || nameLower === 'customer nan' || nameLower === 'blanco' || nameLower === 'reposado' || nameLower === 'anejo' || nameLower === 'item' || nameLower === 'description size') continue;
+    if (!name || /^\d+(\.\d+)?$/.test(name.trim()) || isTotalSummaryName_(name) || String(address).toLowerCase() === 'total' || nameLower === 'mexcor florida' || nameLower === 'store name' || nameLower === 'retailer' || nameLower === 'customer full name' || nameLower === 'account name' || nameLower === 'customer name' || nameLower === 'customer nan' || nameLower === 'blanco' || nameLower === 'reposado' || nameLower === 'anejo' || nameLower === 'item' || nameLower === 'description size') continue;
 
     if (status && !String(status).toLowerCase().startsWith('ready')) {
       skipped.notReady++;
@@ -233,8 +233,7 @@ function normalizeSheetRows_(values, sheetName, seenIds, sheetGid) {
 
     // Clean store / customer name
     var cleanName = String(name).replace(/\s*#\d+/g, '').trim();
-    var cleanNameLower = cleanName.toLowerCase();
-    if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanNameLower === 'total' || cleanNameLower.indexOf('total') === 0 || cleanNameLower.indexOf('subtotal') === 0 || cleanNameLower.indexOf('grand total') === 0) continue;
+    if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || isTotalSummaryName_(cleanName)) continue;
 
     var uniqueId = placeId || ('CMT-' + sheetName.replace(/[^a-zA-Z0-9]/g, '') + '-' + String(i).padStart(3, '0'));
     if (seenIds[uniqueId]) {
@@ -300,6 +299,16 @@ function normalizeSheetRows_(values, sheetName, seenIds, sheetGid) {
   }
 
   return { locations: locations, skipped: skipped };
+}
+
+function isTotalSummaryName_(s) {
+  if (!s) return false;
+  var str = String(s).trim().toLowerCase();
+  if (str === 'total' || str === 'grand total' || str === 'subtotal' || str === 'total sales' || str === 'total volume') return true;
+  if (/^(total|subtotal|grand total)\s*[:\-\_]/i.test(str)) return true;
+  if (/^(total|subtotal|grand total)\s+for\b/i.test(str)) return true;
+  if (/^(total|subtotal|grand total)\s+with\b/i.test(str)) return true;
+  return false;
 }
 
 function normalizeRows_(values) {

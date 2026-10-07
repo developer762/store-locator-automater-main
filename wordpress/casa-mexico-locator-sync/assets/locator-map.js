@@ -8,8 +8,20 @@
   var currentViewMode = 'map'; // 'map', 'sales', or 'table'
   var currentPage = 1;
   var itemsPerPage = 25;
+  var selectedTypeFilter = '';
+  var userLocation = null;
 
   function initLocatorMap() {
+    // Hide Astra / WP default theme page title header so title + view tabs flex side-by-side cleanly
+    var wrap = document.querySelector('.cmx-locator-wrap');
+    if (wrap) {
+      var articleHeader = wrap.closest('article') ? wrap.closest('article').querySelector('.entry-header, header.entry-header') : null;
+      var outerHeader = articleHeader || document.querySelector('.entry-header, header.entry-header');
+      if (outerHeader) {
+        outerHeader.style.display = 'none';
+      }
+    }
+
     var canvas = document.getElementById('cmx-map-canvas');
     if (canvas && window.L) {
       map = L.map('cmx-map-canvas', {
@@ -34,6 +46,7 @@
     var viewMapBtn = document.getElementById('cmx-view-map-btn');
     var viewSalesBtn = document.getElementById('cmx-view-sales-btn');
     var viewTableBtn = document.getElementById('cmx-view-table-btn');
+    var useLocBtn = document.getElementById('cmx-use-location-btn');
 
     function resetAndRender() {
       currentPage = 1;
@@ -43,8 +56,58 @@
     if (searchInput) searchInput.addEventListener('input', resetAndRender);
     if (tabSelect) tabSelect.addEventListener('change', resetAndRender);
     if (stateSelect) stateSelect.addEventListener('change', resetAndRender);
-    if (typeSelect) typeSelect.addEventListener('change', resetAndRender);
+    if (typeSelect) {
+      typeSelect.addEventListener('change', function() {
+        selectedTypeFilter = this.value;
+        syncTypePills(this.value);
+        resetAndRender();
+      });
+    }
     if (sortSelect) sortSelect.addEventListener('change', resetAndRender);
+
+    // Bind Premise Type Pills (ALL, RETAIL, BAR & RESTAURANT)
+    var typePills = document.querySelectorAll('.cmx-type-pill');
+    typePills.forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        typePills.forEach(function(p) { p.classList.remove('active'); });
+        this.classList.add('active');
+        selectedTypeFilter = this.getAttribute('data-type') || '';
+        if (typeSelect) typeSelect.value = selectedTypeFilter;
+        resetAndRender();
+      });
+    });
+
+    function syncTypePills(val) {
+      typePills.forEach(function(p) {
+        if ((p.getAttribute('data-type') || '') === (val || '')) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+    }
+
+    // Geolocation USE MY LOCATION handler
+    if (useLocBtn) {
+      useLocBtn.addEventListener('click', function() {
+        if (!navigator.geolocation) {
+          alert('Geolocation is not supported by your browser.');
+          return;
+        }
+        useLocBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> LOCATING...';
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          useLocBtn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> USE MY LOCATION';
+          userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          renderMapAndSidebar(true);
+        }, function(err) {
+          useLocBtn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> USE MY LOCATION';
+          alert('Unable to retrieve your location. Please ensure location services are enabled.');
+        }, { timeout: 10000 });
+      });
+    }
 
     if (viewMapBtn) {
       viewMapBtn.addEventListener('click', function () {
@@ -147,6 +210,17 @@
     window.addEventListener('orientationchange', triggerMapResize);
   }
 
+  function getDistanceMiles(lat1, lon1, lat2, lon2) {
+    var R = 3958.8;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
   function getTabName(loc) {
     if (loc.tabName) return loc.tabName;
     if (loc.territory) {
@@ -226,18 +300,28 @@
     if (currentVal && statesSet[currentVal]) stateSelect.value = currentVal;
   }
 
-  function renderMapAndSidebar() {
+  function renderMapAndSidebar(isGeolocationTriggered) {
     var searchVal = (document.getElementById('cmx-search-input') ? document.getElementById('cmx-search-input').value : '').toLowerCase().trim();
     var tabVal = document.getElementById('cmx-tab-select') ? document.getElementById('cmx-tab-select').value : '';
     var stateVal = document.getElementById('cmx-state-select') ? document.getElementById('cmx-state-select').value.toUpperCase() : '';
-    var typeVal = document.getElementById('cmx-type-select') ? document.getElementById('cmx-type-select').value : '';
+    var typeVal = selectedTypeFilter || (document.getElementById('cmx-type-select') ? document.getElementById('cmx-type-select').value : '');
     var sortVal = document.getElementById('cmx-sort-select') ? document.getElementById('cmx-sort-select').value : 'name-asc';
 
     var tokens = searchVal.split(/\s+/).filter(Boolean);
 
+    function isTotalSummaryRow(str) {
+      if (!str) return false;
+      var s = String(str).trim().toLowerCase();
+      if (s === 'total' || s === 'grand total' || s === 'subtotal' || s === 'total sales' || s === 'total volume') return true;
+      if (/^(total|subtotal|grand total)\s*[:\-\_]/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+for\b/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+with\b/i.test(s)) return true;
+      return false;
+    }
+
     var filtered = allLocations.filter(function (loc) {
-      var rawName = String(loc.name || '').trim().toLowerCase();
-      if (rawName === 'total' || rawName.indexOf('total') === 0 || rawName.indexOf('grand total') === 0 || rawName.indexOf('subtotal') === 0) {
+      var rawName = String(loc.name || '').trim();
+      if (isTotalSummaryRow(rawName)) {
         return false;
       }
 
@@ -266,25 +350,90 @@
       return matchesSearch && matchesTab && matchesState && matchesType;
     });
 
-    // Apply Sorting
-    filtered.sort(function (a, b) {
-      if (sortVal === 'name-desc') {
-        return String(b.name || '').localeCompare(String(a.name || ''));
-      } else if (sortVal === 'cases-desc') {
-        var cA = Number(a.cases) || 0;
-        var cB = Number(b.cases) || 0;
-        return cB - cA;
-      } else if (sortVal === 'city-asc') {
-        return String(a.city || '').localeCompare(String(b.city || ''));
-      } else {
-        return String(a.name || '').localeCompare(String(b.name || ''));
-      }
-    });
+    // Handle user location distances
+    if (userLocation) {
+      filtered.forEach(function(loc) {
+        var lat = parseFloat(loc.latitude);
+        var lng = parseFloat(loc.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          loc._distance = getDistanceMiles(userLocation.lat, userLocation.lng, lat, lng);
+        } else {
+          loc._distance = 999999;
+        }
+      });
+      filtered.sort(function(a, b) {
+        return (a._distance || 0) - (b._distance || 0);
+      });
+    } else {
+      // Apply standard sorting
+      filtered.sort(function (a, b) {
+        if (sortVal === 'name-desc') {
+          return String(b.name || '').localeCompare(String(a.name || ''));
+        } else if (sortVal === 'cases-desc') {
+          var cA = Number(a.cases) || 0;
+          var cB = Number(b.cases) || 0;
+          return cB - cA;
+        } else if (sortVal === 'city-asc') {
+          return String(a.city || '').localeCompare(String(b.city || ''));
+        } else {
+          return String(a.name || '').localeCompare(String(b.name || ''));
+        }
+      });
+    }
 
-    // Update count badge
+    // Update count badge (SHOWING X OF Y STORES format matching Screenshot 4)
     var countBadge = document.getElementById('cmx-count-badge');
     if (countBadge) {
-      countBadge.textContent = filtered.length + ' store' + (filtered.length === 1 ? '' : 's') + ' found';
+      countBadge.textContent = 'SHOWING ' + filtered.length + ' OF ' + allLocations.length + ' STORES';
+    }
+
+    // Geolocation Nearest Banner logic
+    var nearestBanner = document.getElementById('cmx-nearest-banner');
+    if (nearestBanner) {
+      if (userLocation && filtered.length > 0) {
+        var closest = filtered[0];
+        var distMi = Math.round(closest._distance || 0);
+        var distKm = Math.round(distMi * 1.60934);
+        var formattedDistMi = distMi.toLocaleString('en-US');
+        var formattedDistKm = distKm.toLocaleString('en-US');
+
+        var isNear = distMi < 50;
+        var bannerMsg = isNear
+          ? 'Nearest Casa México is <strong>' + formattedDistMi + ' mi</strong> away.'
+          : 'No stores found near you<br><span style="font-size:0.85rem; color:#6E6762; font-weight:400;">Nearest Casa México is <strong>' + formattedDistMi + ' mi (' + formattedDistKm + ' km)</strong> away.</span>';
+
+        var cleanName = escapeHtml(closest.name || 'Store Location');
+        var cityStateStr = [closest.city, closest.state].filter(function(x) { return x && x !== 'N/A' && x !== 'US'; }).join(', ') + (closest.postalCode ? ' ' + escapeHtml(closest.postalCode) : '');
+        var directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(cleanName + ' ' + (closest.address || cityStateStr || ''));
+
+        nearestBanner.style.display = 'block';
+        nearestBanner.innerHTML =
+          '<div class="cmx-nearest-title">' + bannerMsg + '</div>' +
+          '<div class="cmx-nearest-card">' +
+            '<div class="cmx-nearest-name">' + cleanName + '</div>' +
+            '<div class="cmx-nearest-addr">' + (cityStateStr || escapeHtml(closest.address || '')) + '</div>' +
+            '<div class="cmx-nearest-actions">' +
+              '<button type="button" class="cmx-nearest-btn-map" id="cmx-btn-view-nearest"><i class="fa-solid fa-location-dot"></i> VIEW ON MAP</button>' +
+              '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-nearest-btn-dir"><i class="fa-solid fa-diamond-turn-right"></i> GET DIRECTIONS</a>' +
+            '</div>' +
+          '</div>';
+
+        var viewNearestBtn = document.getElementById('cmx-btn-view-nearest');
+        if (viewNearestBtn && map) {
+          viewNearestBtn.addEventListener('click', function() {
+            var lat = parseFloat(closest.latitude);
+            var lng = parseFloat(closest.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              map.setView([lat, lng], 14, { animate: true });
+              var found = locationMarkers.find(function (m) { return m.id === (closest.id || 0); });
+              if (found && found.marker) found.marker.openPopup();
+            }
+          });
+        }
+      } else {
+        nearestBanner.style.display = 'none';
+        nearestBanner.innerHTML = '';
+      }
     }
 
     if (currentViewMode === 'table') {
@@ -336,12 +485,24 @@
       var html = '';
       Object.keys(territoryMap).sort().forEach(function (terr) {
         html += '<div class="cmx-sales-card">' +
-          '<div class="cmx-sales-card-title">📍 Territory: ' + escapeHtml(terr) + '</div>' +
-          '<div class="cmx-sales-card-vol">📦 Volume: <strong>' + territoryMap[terr] + '</strong> units / cases</div>' +
+          '<div class="cmx-sales-card-title"><i class="fa-solid fa-location-dot"></i> Territory: ' + escapeHtml(terr) + '</div>' +
+          '<div class="cmx-sales-card-vol"><i class="fa-solid fa-box"></i> Volume: <strong>' + territoryMap[terr] + '</strong> units / cases</div>' +
           '</div>';
       });
       container.innerHTML = html;
     }
+  }
+
+  // Custom Warm Brown Leaflet Teardrop Pin Marker Icon matching Image 3 & 4!
+  function createWarmPinMarkerIcon() {
+    if (!window.L) return null;
+    return L.divIcon({
+      className: 'cmx-custom-pin-marker',
+      html: '<div class="cmx-marker-pin"><svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 42 16 42C16 42 32 28 32 16C32 7.163 24.837 0 16 0Z" fill="#B37A4C"/><circle cx="16" cy="15" r="5" fill="#FFFFFF"/></svg></div>',
+      iconSize: [32, 42],
+      iconAnchor: [16, 42],
+      popupAnchor: [0, -38]
+    });
   }
 
   function renderMapAndCards(filtered) {
@@ -355,12 +516,13 @@
 
     if (filtered.length === 0) {
       if (sidebarContainer) {
-        sidebarContainer.innerHTML = '<div class="cmx-no-results">No store locations matching search criteria.</div>';
+        sidebarContainer.innerHTML = '<div class="cmx-no-results">No stores found matching your search.</div>';
       }
       return;
     }
 
     var bounds = L.latLngBounds();
+    var pinIcon = createWarmPinMarkerIcon();
 
     function formatLocationAddress(loc) {
       var addr = loc.address ? escapeHtml(loc.address) : '';
@@ -389,37 +551,24 @@
       return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(parts.join(', '));
     }
 
-    function getSheetTabUrl(item) {
-      var spreadsheetId = '1VnQcAcYE0LPmmmAIXCSH71V_RTUIZbW6';
-      var base = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/edit';
-      if (item.sheetGid !== undefined && item.sheetGid !== null && item.sheetGid !== '') {
-        return base + '?gid=' + encodeURIComponent(item.sheetGid) + '#gid=' + encodeURIComponent(item.sheetGid);
-      }
-      var knownGids = {
-        'Depletions MEMPHIS August 2026': '1482511010',
-        'Depletions Nashville August 2026': '182741548',
-        'Blanco August 2026': '0',
-        'Reposado August 2026': '125139031',
-        'Customers CHATANOOGA August 2026': '119284759',
-        'Store Locator': '0',
-        'July 2026 NY-NJ': '789123456'
-      };
-      if (item.tabName && knownGids[item.tabName]) {
-        return base + '?gid=' + knownGids[item.tabName] + '#gid=' + knownGids[item.tabName];
-      }
-      return base + '?usp=sharing';
+    function isTotalSummaryRow(str) {
+      if (!str) return false;
+      var s = String(str).trim().toLowerCase();
+      if (s === 'total' || s === 'grand total' || s === 'subtotal' || s === 'total sales' || s === 'total volume') return true;
+      if (/^(total|subtotal|grand total)\s*[:\-\_]/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+for\b/i.test(s)) return true;
+      if (/^(total|subtotal|grand total)\s+with\b/i.test(s)) return true;
+      return false;
     }
 
     filtered.forEach(function (loc, index) {
       var lat = parseFloat(loc.latitude);
       var lng = parseFloat(loc.longitude);
       var latLng = (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : null;
-      var tName = loc._cleanTabName || getTabName(loc);
       var addressHtml = formatLocationAddress(loc);
-      var tabUrl = getSheetTabUrl(loc);
       
       var cleanName = escapeHtml(loc.name || '').replace(/\s*#\d+/g, '').trim();
-      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || cleanName.toLowerCase() === 'total' || cleanName.toLowerCase().indexOf('total') === 0) {
+      if (!cleanName || /^\d+(\.\d+)?$/.test(cleanName) || isTotalSummaryRow(cleanName)) {
         if (loc.bottlings && loc.bottlings !== 'Casa Mexico Tequila') {
           cleanName = escapeHtml(loc.bottlings);
         } else if (loc.territory || loc.tabName) {
@@ -430,20 +579,21 @@
       }
 
       var directionsUrl = buildDirectionsUrl(loc, cleanName);
-      var storeId = loc.id || loc.placeId || 'N/A';
+      var typeLabel = loc.type === 'retail' ? 'RETAIL' : 'BAR & RESTAURANT';
 
       if (latLng) {
         bounds.extend(latLng);
 
-        var marker = L.marker(latLng, { title: cleanName });
+        var markerOptions = { title: cleanName };
+        if (pinIcon) markerOptions.icon = pinIcon;
+
+        var marker = L.marker(latLng, markerOptions);
         var popupHtml = '<div class="cmx-leaflet-popup">' +
           '<div class="cmx-popup-title">' + cleanName + '</div>' +
-          '<div class="cmx-popup-address"><strong>📍 Address:</strong> ' + addressHtml + '</div>' +
-          (loc.bottlings ? '<div class="cmx-bottlings-tag" style="margin-top:0.35rem;">🍸 <strong>Product:</strong> ' + escapeHtml(loc.bottlings) + '</div>' : '') +
-          (loc.cases ? '<div class="cmx-cases-badge" style="margin-top:0.35rem;">📦 <strong>Sales:</strong> ' + loc.cases + ' Cases</div>' : '') +
-          (loc.date ? '<div style="margin-top:0.3rem; font-size:0.8rem; color:#64748b;">📅 <strong>Date:</strong> ' + escapeHtml(loc.date) + '</div>' : '') +
-          (loc.phone ? '<div class="cmx-popup-meta">📞 <strong>Phone:</strong> <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></div>' : '') +
-          '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-popup-btn" style="margin-top:0.6rem;">Get Directions 🗺️</a>' +
+          '<div class="cmx-popup-address">' + addressHtml + '</div>' +
+          (loc.bottlings ? '<div class="cmx-bottlings-tag"><i class="fa-solid fa-glass-martini-alt"></i> <strong>Product:</strong> ' + escapeHtml(loc.bottlings) + '</div>' : '') +
+          (loc.cases ? '<div class="cmx-cases-badge"><i class="fa-solid fa-box"></i> <strong>Sales Volume:</strong> ' + loc.cases + ' Cases</div>' : '') +
+          '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-popup-btn"><i class="fa-solid fa-diamond-turn-right"></i> GET DIRECTIONS</a>' +
           '</div>';
 
         marker.bindPopup(popupHtml);
@@ -451,33 +601,24 @@
         locationMarkers.push({ id: loc.id || index, marker: marker, location: loc });
       }
 
-      // Render Sidebar Card
+      // Render Store Card matching Screenshot 4 format with Font Awesome icons!
       if (sidebarContainer) {
         var card = document.createElement('div');
         card.className = 'cmx-store-card';
         card.setAttribute('data-index', index);
 
-        var typeBadgeClass = loc.type === 'retail' ? 'cmx-badge-retail' : 'cmx-badge-bar-restaurant';
-        var typeBadgeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
+        var typeIconHtml = loc.type === 'retail'
+          ? '<i class="fa-regular fa-bookmark"></i> '
+          : '<i class="fa-solid fa-utensils"></i> ';
 
         card.innerHTML =
-          '<div class="cmx-store-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.4rem;">' +
-            '<div class="cmx-store-title" style="font-size:1.05rem; font-weight:700; color:#0f172a; line-height:1.35;">' + cleanName + '</div>' +
-            '<span class="cmx-badge ' + typeBadgeClass + '" style="flex-shrink:0;">' + typeBadgeLabel + '</span>' +
+          '<div class="cmx-card-main">' +
+            '<div class="cmx-card-title">' + cleanName + '</div>' +
+            '<div class="cmx-card-address">' + addressHtml + '</div>' +
           '</div>' +
-          '<div class="cmx-card-fields" style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.82rem; color:#475569; line-height:1.4;">' +
-            '<div style="display:flex; align-items:flex-start; gap:0.35rem;">' +
-              '<span style="flex-shrink:0;">📍</span>' +
-              '<span><strong style="color:#1e293b;">Address:</strong> ' + addressHtml + '</span>' +
-            '</div>' +
-            (loc.bottlings ? '<div style="display:flex; align-items:flex-start; gap:0.35rem;"><span style="flex-shrink:0;">🍸</span><span><strong style="color:#0284c7;">Product:</strong> ' + escapeHtml(loc.bottlings) + '</span></div>' : '') +
-            (loc.cases ? '<div style="display:flex; align-items:center; gap:0.35rem;"><span style="flex-shrink:0;">📦</span><span><strong style="color:#059669;">Sales:</strong> <span style="background:rgba(16,185,129,0.12); color:#059669; padding:0.1rem 0.45rem; border-radius:4px; font-weight:700;">' + loc.cases + ' Cases</span></span></div>' : '') +
-            (loc.date ? '<div style="display:flex; align-items:center; gap:0.35rem;"><span style="flex-shrink:0;">📅</span><span><strong style="color:#334155;">Date:</strong> ' + escapeHtml(loc.date) + '</span></div>' : '') +
-            (loc.distributor ? '<div style="display:flex; align-items:flex-start; gap:0.35rem;"><span style="flex-shrink:0;">🚚</span><span><strong style="color:#334155;">Distributor:</strong> ' + escapeHtml(loc.distributor) + '</span></div>' : '') +
-          '</div>' +
-          '<div class="cmx-store-details" style="margin-top:0.6rem; padding-top:0.5rem; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">' +
-            (loc.phone ? '<span class="cmx-store-phone">📞 <a href="tel:' + escapeHtml(loc.phone) + '">' + escapeHtml(loc.phone) + '</a></span>' : '<span style="font-size:0.75rem; color:#94a3b8; font-family:monospace;">ID: ' + escapeHtml(storeId) + '</span>') +
-            '<span class="cmx-store-directions"><a href="' + directionsUrl + '" target="_blank" rel="noopener">Directions 🗺️</a></span>' +
+          '<div class="cmx-card-footer">' +
+            '<span class="cmx-card-type">' + typeIconHtml + typeLabel + '</span>' +
+            '<a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-card-dir"><i class="fa-solid fa-diamond-turn-right"></i> GET DIRECTIONS</a>' +
           '</div>';
 
         if (latLng) {
@@ -498,7 +639,7 @@
       if (map) {
         map.invalidateSize();
         if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+          map.fitBounds(bounds, { padding: [25, 25], maxZoom: 14 });
         }
       }
     }, 150);
@@ -528,7 +669,7 @@
     var html = '';
     pageItems.forEach(function (loc) {
       var typeBadgeClass = loc.type === 'retail' ? 'cmx-badge-retail' : 'cmx-badge-bar-restaurant';
-      var typeBadgeLabel = loc.type === 'retail' ? 'Retail' : 'Bar & Restaurant';
+      var typeBadgeLabel = loc.type === 'retail' ? 'RETAIL' : 'BAR & RESTAURANT';
       var parts = [loc.name];
       if (loc.address && loc.address !== 'N/A') parts.push(loc.address);
       else if (loc.city && loc.city !== 'N/A') parts.push(loc.city);
@@ -543,15 +684,15 @@
         '<td>' + (cityStateStr ? escapeHtml(cityStateStr) : '—') + '</td>' +
         '<td><span class="cmx-badge ' + typeBadgeClass + '">' + typeBadgeLabel + '</span></td>' +
         '<td><span class="cmx-bottlings-tag">' + escapeHtml(loc.bottlings || 'N/A') + '</span></td>' +
-        '<td>' + (loc.cases ? '<strong>📦 ' + loc.cases + '</strong>' : '-') + '</td>' +
+        '<td>' + (loc.cases ? '<strong><i class="fa-solid fa-box"></i> ' + loc.cases + '</strong>' : '-') + '</td>' +
         '<td><span class="cmx-tab-pill">' + escapeHtml(tName) + '</span></td>' +
-        '<td><a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-table-btn">Directions 🗺️</a></td>' +
+        '<td><a href="' + directionsUrl + '" target="_blank" rel="noopener" class="cmx-table-btn"><i class="fa-solid fa-diamond-turn-right"></i> Directions</a></td>' +
         '</tr>';
     });
 
     tableBody.innerHTML = html;
 
-    // Render Pagination Bar
+    // Render Perfect Pagination Bar
     if (tableWrap) {
       var pagBar = document.createElement('div');
       pagBar.id = 'cmx-table-pagination';
@@ -559,15 +700,17 @@
       pagBar.innerHTML =
         '<div class="cmx-pagination-info">Showing Page <strong>' + currentPage + '</strong> of <strong>' + totalPages + '</strong> (' + filtered.length + ' stores)</div>' +
         '<div class="cmx-pagination-controls">' +
-          '<label style="margin-right:0.3rem;">Per Page:</label>' +
+          '<div class="cmx-per-page-wrap"><label for="cmx-per-page-select">Per Page:</label>' +
           '<select id="cmx-per-page-select" class="cmx-page-size-select">' +
             '<option value="15"' + (itemsPerPage === 15 ? ' selected' : '') + '>15</option>' +
             '<option value="25"' + (itemsPerPage === 25 ? ' selected' : '') + '>25</option>' +
             '<option value="50"' + (itemsPerPage === 50 ? ' selected' : '') + '>50</option>' +
             '<option value="100"' + (itemsPerPage === 100 ? ' selected' : '') + '>100</option>' +
-          '</select>' +
-          '<button type="button" id="cmx-prev-btn" class="cmx-page-btn"' + (currentPage <= 1 ? ' disabled' : '') + '>◄ Previous</button>' +
-          '<button type="button" id="cmx-next-btn" class="cmx-page-btn"' + (currentPage >= totalPages ? ' disabled' : '') + '>Next ►</button>' +
+          '</select></div>' +
+          '<div class="cmx-page-btns">' +
+            '<button type="button" id="cmx-prev-btn" class="cmx-page-btn"' + (currentPage <= 1 ? ' disabled' : '') + '><i class="fa-solid fa-chevron-left"></i> Previous</button>' +
+            '<button type="button" id="cmx-next-btn" class="cmx-page-btn"' + (currentPage >= totalPages ? ' disabled' : '') + '>Next <i class="fa-solid fa-chevron-right"></i></button>' +
+          '</div>' +
         '</div>';
       tableWrap.appendChild(pagBar);
 

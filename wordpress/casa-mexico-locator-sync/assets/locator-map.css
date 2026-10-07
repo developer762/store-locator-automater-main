@@ -1,230 +1,414 @@
-/* Casa Mexico Store Locator Component Styles - Spacious & Premium UI */
+/* Casa Mexico Store Locator Component Styles - Matching casamexicotequila.com/store-locator/ UI */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .cmx-locator-wrap {
-  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #2C2825;
   width: 100% !important;
-  max-width: 1320px !important;
-  margin: 2rem auto !important;
-  box-sizing: border-box;
-}
-
-.alignfull .cmx-locator-wrap,
-.alignwide .cmx-locator-wrap {
   max-width: 100% !important;
+  margin: 1rem auto !important;
+  box-sizing: border-box;
 }
 
 .cmx-locator-wrap * {
   box-sizing: border-box;
 }
 
-/* Header Controls Container - Spacious Glassmorphism Header */
-.cmx-locator-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  padding: 1.5rem 1.75rem;
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  margin-bottom: 1.5rem; /* Generous 24px separation gap */
-  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.35);
+/* Hide Astra / WP theme default page title header when locator shortcode is present */
+article:has(.cmx-locator-wrap) > header.entry-header,
+.ast-article-single:has(.cmx-locator-wrap) .entry-header,
+body:has(.cmx-locator-wrap) header.entry-header,
+body:has(.cmx-locator-wrap) .entry-header {
+  display: none !important;
 }
 
-.cmx-controls-top {
+/* Header Row & Title - Flexed side-by-side matching reference UI */
+.cmx-header-row {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 1rem;
-  width: 100%;
+  margin-bottom: 1.25rem;
 }
 
-.cmx-search-box {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  position: relative;
+.cmx-page-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1A202C;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
 }
 
-.cmx-search-input {
-  width: 100%;
-  padding: 0.8rem 1.25rem 0.8rem 3.2rem !important;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(30, 41, 59, 0.95);
-  color: #f8fafc;
-  font-size: 0.92rem;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-
-.cmx-search-input:focus {
-  border-color: #6366f1;
-  background: #1e293b;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
-}
-
-.cmx-search-icon {
-  position: absolute;
-  left: 1.1rem !important;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  fill: #818cf8;
-  pointer-events: none;
-}
-
-/* Floating View Mode Switcher Pills */
 .cmx-view-toggle {
   display: inline-flex;
   gap: 0.35rem;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 0.35rem;
-  border-radius: 35px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  max-width: 100%;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.cmx-view-toggle::-webkit-scrollbar {
-  display: none;
+  background: #EFECE6;
+  padding: 0.25rem;
+  border-radius: 6px;
+  border: 1px solid #E2DCD5;
 }
 
 .cmx-toggle-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #6E6762;
   font-size: 0.85rem;
   font-weight: 600;
-  font-family: inherit;
-  padding: 0.55rem 1.2rem;
-  border-radius: 25px;
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .cmx-toggle-btn:hover {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.05);
+  color: #2C2825;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .cmx-toggle-btn.cmx-active {
-  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-  color: #ffffff;
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+  background: #B37A4C;
+  color: #FFFFFF;
 }
 
-/* Bottom Inline Filter Group */
-.cmx-controls-bottom {
+/* Main Split View Layout: Left Directory Sidebar + Right Map */
+.cmx-locator-body {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: row;
+  height: 720px;
+  border: 1px solid #EAE4DB;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Left Directory Sidebar */
+.cmx-sidebar {
+  flex: 0 0 360px;
+  width: 360px;
+  min-width: 320px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  background: #FBF9F5;
+  border-right: 1px solid #EAE4DB;
+  height: 100%;
+}
+
+.cmx-sidebar-header {
+  padding: 16px;
+  background: #FBF9F5;
+  border-bottom: 1px solid #EAE4DB;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Search Box with FontAwesome Icon */
+.cmx-search-box {
   width: 100%;
-  padding-top: 0.85rem;
-  padding-bottom: 0.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.cmx-filter-group {
+.cmx-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #8C847C;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cmx-search-input {
+  width: 100%;
+  padding: 11px 14px 11px 38px !important;
+  border-radius: 4px !important;
+  border: 1px solid #E2DCD5 !important;
+  background: #FFFFFF !important;
+  color: #2C2825 !important;
+  font-size: 13.5px !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.cmx-search-input:focus {
+  border-color: #B37A4C !important;
+  box-shadow: 0 0 0 3px rgba(179, 122, 76, 0.15) !important;
+}
+
+.cmx-search-input::placeholder {
+  color: #9C948B;
+}
+
+/* USE MY LOCATION Button */
+.cmx-btn-location {
+  width: 100%;
+  background: #B37A4C;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(179, 122, 76, 0.2);
+}
+
+.cmx-btn-location:hover {
+  background: #9E6738;
+}
+
+.cmx-btn-location:active {
+  transform: translateY(1px);
+}
+
+/* Premise Type Pills (ALL, RETAIL, BAR & RESTAURANT) */
+.cmx-type-pills {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 6px;
+  width: 100%;
+}
+
+.cmx-type-pill {
   flex: 1;
-  align-items: center;
+  text-align: center;
+  background: #EFECE6;
+  color: #5E5750;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.cmx-type-pill:hover {
+  background: #E4DFC8;
+  color: #2C2825;
+}
+
+.cmx-type-pill.active {
+  background: #B37A4C;
+  color: #FFFFFF;
+}
+
+/* Secondary Filter Dropdowns */
+.cmx-filter-dropdowns {
+  display: flex;
+  gap: 6px;
+  width: 100%;
 }
 
 .cmx-select {
-  height: 44px !important;
-  min-height: 44px !important;
-  line-height: 44px !important;
-  padding: 0 2.2rem 0 0.85rem !important;
-  border-radius: 10px !important;
-  border: 1.5px solid rgba(129, 140, 248, 0.4) !important;
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  font-size: 0.88rem !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  line-height: 34px !important;
+  padding: 0 1.8rem 0 0.65rem !important;
+  border-radius: 4px !important;
+  border: 1px solid #E2DCD5 !important;
+  background-color: #FFFFFF !important;
+  color: #2C2825 !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   font-family: inherit !important;
   cursor: pointer !important;
   outline: none !important;
-  min-width: 0;
   flex: 1;
-  max-width: 240px;
+  min-width: 0;
   box-sizing: border-box !important;
-  vertical-align: middle !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   appearance: none !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23818cf8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238C847C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
-  background-position: right 0.75rem center !important;
-  background-size: 14px !important;
-  transition: all 0.2s ease !important;
+  background-position: right 0.5rem center !important;
+  background-size: 12px !important;
 }
 
-.cmx-select:focus,
-.cmx-select:hover,
-.cmx-select:active {
-  border-color: #818cf8 !important;
-  background-color: #0f172a !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3) !important;
+.cmx-select:focus {
+  border-color: #B37A4C !important;
 }
 
-.cmx-select option {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  font-weight: 600 !important;
-  padding: 0.6rem !important;
-  line-height: 1.5 !important;
-}
-
-.cmx-select option:checked,
-.cmx-select option:hover {
-  background: #4f46e5 !important;
-  color: #ffffff !important;
-}
-
+/* Count Header Badge */
 .cmx-count-badge {
-  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8C847C;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Geolocation Nearest Banner */
+.cmx-nearest-banner {
+  background: #FAF7F2;
+  border: 1px solid #EBE4D8;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 4px;
+}
+
+.cmx-nearest-title {
   font-size: 0.88rem;
   font-weight: 700;
-  white-space: nowrap;
-  background: rgba(56, 189, 248, 0.12);
-  padding: 0.45rem 1rem;
-  border-radius: 25px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  letter-spacing: 0.02em;
+  color: #2C2825;
+  margin-bottom: 8px;
+  line-height: 1.35;
 }
 
-/* Main Split View Layout: Map + Sidebar */
-.cmx-locator-body {
+.cmx-nearest-card {
+  background: #FFFFFF;
+  border: 1px solid #E2DCD5;
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.cmx-nearest-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #2C2825;
+}
+
+.cmx-nearest-addr {
+  font-size: 0.8rem;
+  color: #6E6762;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.cmx-nearest-actions {
   display: flex;
-  flex-direction: row;
-  height: 600px;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
-  background: #ffffff;
+  gap: 8px;
 }
 
+.cmx-nearest-btn-map {
+  background: #8C847C;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cmx-nearest-btn-dir {
+  background: #B37A4C;
+  color: #FFFFFF;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* Store Cards Sidebar List */
+.cmx-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  background: #FBF9F5;
+  padding: 0;
+}
+
+.cmx-store-card {
+  background: #FDFBF7;
+  border-bottom: 1px solid #EAE4DB;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.cmx-store-card:hover, .cmx-store-card.cmx-active {
+  background: #F4EFE6;
+}
+
+.cmx-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmx-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2C2825;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.cmx-card-address {
+  font-size: 12.5px;
+  color: #6E6762;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.cmx-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.cmx-card-type {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #A66E43;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cmx-card-dir {
+  font-size: 11px;
+  font-weight: 700;
+  color: #B37A4C;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.cmx-card-dir:hover {
+  color: #8C5A32;
+  text-decoration: underline;
+}
+
+.cmx-no-results {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8C847C;
+  font-size: 0.9rem;
+}
+
+/* Right Map Container */
 .cmx-map-container {
-  flex: 1.5;
+  flex: 1;
   height: 100%;
-  min-height: 380px;
+  min-height: 400px;
   position: relative;
   z-index: 1;
 }
@@ -232,652 +416,297 @@
 #cmx-map-canvas {
   width: 100%;
   height: 100%;
-  background: #e2e8f0;
+  background: #E5E0D8;
 }
 
-/* Sidebar Store Cards List */
-.cmx-sidebar {
-  flex: 1;
-  max-width: 440px;
-  min-width: 0;
-  height: 100%;
-  overflow-y: auto;
-  background: #f8fafc;
-  border-left: 1px solid #e2e8f0;
-  padding: 1.15rem;
+/* Leaflet Custom Marker & Popup - Clean pin marker with no black box/shadow */
+.leaflet-marker-icon.cmx-custom-pin-marker,
+.leaflet-div-icon.cmx-custom-pin-marker,
+.cmx-custom-pin-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
-.cmx-store-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.15rem 1.25rem;
-  margin-bottom: 1rem;
-  cursor: pointer;
-  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.cmx-store-card:hover, .cmx-store-card.cmx-active {
-  border-color: #6366f1;
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
-  transform: translateY(-2px);
-}
-
-.cmx-store-header {
+.cmx-marker-pin {
+  width: 32px;
+  height: 42px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin-bottom: 0.4rem;
-  width: 100%;
-  min-width: 0;
-}
-
-.cmx-store-title {
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: #0f172a;
-  line-height: 1.35;
-  flex: 1;
-  min-width: 0;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.cmx-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.cmx-badge-retail {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-}
-
-.cmx-badge-bar-restaurant {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
-}
-
-.cmx-store-address {
-  font-size: 0.88rem;
-  color: #475569;
-  line-height: 1.45;
-  margin-bottom: 0.6rem;
-}
-
-.cmx-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.cmx-cases-pill {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-}
-
-.cmx-tab-pill {
-  display: inline-block !important;
-  white-space: normal !important;
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
-  background: #f3e8ff;
-  color: #6b21a8;
-  border: 1px solid #e9d5ff;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  max-width: 100%;
-  line-height: 1.2;
-}
-
-.cmx-store-details {
-  font-size: 0.82rem;
-  color: #64748b;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
   align-items: center;
-  border-top: 1px dashed #e2e8f0;
-  padding-top: 0.65rem;
-  margin-top: 0.65rem;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  transition: transform 0.2s ease;
 }
 
-.cmx-store-phone a, .cmx-store-directions a {
-  color: #4f46e5;
-  text-decoration: none;
-  font-weight: 600;
+.cmx-marker-pin:hover {
+  transform: scale(1.15);
 }
 
-.cmx-store-phone a:hover, .cmx-store-directions a:hover {
-  text-decoration: underline;
-}
-
-.cmx-bottlings-tag {
-  background: #f1f5f9;
-  color: #334155;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  margin-top: 0.4rem;
-}
-
-.cmx-no-results {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #64748b;
-  font-size: 0.95rem;
-}
-
-/* Leaflet Map Popup Card */
 .cmx-leaflet-popup .leaflet-popup-content-wrapper {
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .cmx-leaflet-popup .leaflet-popup-content {
   margin: 0;
-  padding: 1.15rem;
-  min-width: 240px;
+  padding: 14px 16px;
+  min-width: 220px;
   font-family: inherit;
 }
 
 .cmx-popup-title {
   font-weight: 700;
-  font-size: 1.1rem;
-  color: #0f172a;
-  margin-bottom: 0.3rem;
+  font-size: 15px;
+  color: #2C2825;
+  margin-bottom: 4px;
 }
 
 .cmx-popup-address {
-  font-size: 0.88rem;
-  color: #475569;
-  margin-bottom: 0.75rem;
+  font-size: 12.5px;
+  color: #6E6762;
+  margin-bottom: 10px;
   line-height: 1.4;
-}
-
-.cmx-popup-meta {
-  font-size: 0.82rem;
-  color: #64748b;
-  margin-bottom: 0.6rem;
 }
 
 .cmx-popup-btn {
   display: inline-block;
-  background: linear-gradient(135deg, #4f46e5, #06b6d4);
-  color: #ffffff !important;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  background: #B37A4C;
+  color: #FFFFFF !important;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 4px;
   text-decoration: none !important;
   text-align: center;
-  margin-top: 0.5rem;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
 }
 
-/* Data Grid Table View Container */
+.cmx-popup-btn:hover {
+  background: #9E6738;
+}
+
+/* Data Table Container */
 .cmx-table-wrap {
   width: 100%;
   overflow-x: auto;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #EAE4DB;
+  border-radius: 6px;
 }
 
 .cmx-data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   text-align: left;
 }
 
 .cmx-data-table th {
-  background: #0f172a;
-  color: #f8fafc;
-  font-weight: 600;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #1e293b;
+  background: #F4EFE6;
+  color: #2C2825;
+  font-weight: 700;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #EAE4DB;
   white-space: nowrap;
 }
 
 .cmx-data-table td {
-  padding: 0.95rem 1.25rem;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
-  vertical-align: middle;
-}
-
-.cmx-data-table tbody tr:nth-child(even) {
-  background: #f8fafc;
-}
-
-.cmx-data-table tbody tr:hover {
-  background: #f1f5f9;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #EAE4DB;
+  color: #4A4440;
 }
 
 .cmx-table-btn {
-  display: inline-block;
-  background: #4f46e5;
-  color: #ffffff !important;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.4rem 0.85rem;
-  border-radius: 8px;
+  background: #B37A4C;
+  color: #FFFFFF !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
   text-decoration: none !important;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-/* Sales Metrics View Container */
-.cmx-sales-wrap {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
-}
-
-.cmx-sales-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-.cmx-metric-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.25rem;
-  text-align: center;
-}
-
-.cmx-metric-label {
-  font-size: 0.82rem;
-  color: #64748b;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cmx-metric-value {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #4f46e5;
-  margin: 0.35rem 0;
-}
-
-.cmx-metric-sub {
-  font-size: 0.78rem;
-  color: #94a3b8;
-}
-
-.cmx-sales-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
-}
-
-.cmx-sales-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-}
-
-.cmx-sales-card-title {
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: #0f172a;
-}
-
-.cmx-sales-card-vol {
-  font-size: 0.92rem;
-  color: #0284c7;
-  margin-top: 0.5rem;
-}
-
-/* Responsive Adjustments: 320px Mobile to 4K Displays */
-
-/* Mobile & Small Tablets (320px - 768px) */
-@media (max-width: 768px) {
-  .cmx-locator-wrap {
-    margin: 0.5rem auto !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-locator-controls {
-    padding: 0.85rem !important;
-    gap: 0.75rem !important;
-    border-radius: 12px !important;
-    margin-bottom: 0.85rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-controls-top {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.65rem !important;
-    width: 100% !important;
-  }
-
-  .cmx-search-box {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
-  .cmx-search-input {
-    font-size: 0.85rem !important;
-    padding: 0.65rem 0.85rem 0.65rem 2.3rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Horizontal Scrollable View Toggle Tabs on Mobile */
-  .cmx-view-toggle {
-    width: 100% !important;
-    max-width: 100% !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    scroll-behavior: smooth !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    padding: 0.3rem !important;
-    gap: 0.35rem !important;
-    border-radius: 30px !important;
-    background: rgba(15, 23, 42, 0.8) !important;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.25) !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-view-toggle::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .cmx-toggle-btn {
-    flex: 0 0 auto !important;
-    padding: 0.5rem 0.85rem !important;
-    font-size: 0.8rem !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    border-radius: 22px !important;
-  }
-
-  .cmx-controls-bottom {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.65rem !important;
-    width: 100% !important;
-  }
-
-  .cmx-filter-group {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.5rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .cmx-select {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    font-size: 0.78rem !important;
-    padding: 0.5rem 0.6rem !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-  }
-
-  .cmx-count-badge {
-    width: 100% !important;
-    text-align: center !important;
-    font-size: 0.8rem !important;
-    padding: 0.4rem 0.75rem !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-locator-body {
-    flex-direction: column !important;
-    height: auto !important;
-    border-radius: 12px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-map-container {
-    height: 320px !important;
-    min-height: 300px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    position: relative !important;
-  }
-
-  #cmx-map-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 300px !important;
-    display: block !important;
-  }
-
-  .cmx-sidebar {
-    max-width: 100% !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 380px !important;
-    border-left: none !important;
-    border-top: 1px solid #e2e8f0 !important;
-    padding: 0.6rem !important;
-    box-sizing: border-box !important;
-  }
-
-  #cmx-sidebar-list {
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  .cmx-store-card {
-    padding: 0.85rem !important;
-    margin-bottom: 0.75rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-  }
-
-  .cmx-store-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: flex-start !important;
-    gap: 0.4rem !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  .cmx-store-title {
-    font-size: 0.95rem !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    line-height: 1.3 !important;
-  }
-
-  .cmx-badge {
-    flex: 0 0 auto !important;
-    font-size: 0.68rem !important;
-    padding: 0.2rem 0.5rem !important;
-    white-space: nowrap !important;
-  }
-
-  .cmx-store-address {
-    font-size: 0.82rem !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-  }
-
-  .cmx-meta-row {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 0.35rem !important;
-    max-width: 100% !important;
-  }
-
-  .cmx-tab-pill, .cmx-cases-pill {
-    font-size: 0.72rem !important;
-    padding: 0.2rem 0.5rem !important;
-    max-width: 100% !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-  }
-
-  .cmx-store-details {
-    font-size: 0.78rem !important;
-    gap: 0.5rem !important;
-  }
-}
-
-/* Large Displays & 4K Monitors (1441px - 3840px) */
-@media (min-width: 1441px) {
-  .cmx-locator-wrap {
-    max-width: 1600px !important;
-  }
-
-  .cmx-locator-body {
-    height: 700px;
-  }
-
-  .cmx-sidebar {
-    max-width: 480px;
-  }
-
-  .cmx-store-title {
-    font-size: 1.15rem;
-  }
-
-  .cmx-search-input, .cmx-select, .cmx-toggle-btn {
-    font-size: 0.95rem;
-  }
-}
-
-/* Custom Scrollbars for Sidebar and Table Container */
-.cmx-table-wrap::-webkit-scrollbar,
-.cmx-sidebar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.cmx-table-wrap::-webkit-scrollbar-track,
-.cmx-sidebar::-webkit-scrollbar-track {
-  background: #0f172a;
-  border-radius: 4px;
-}
-
-.cmx-table-wrap::-webkit-scrollbar-thumb,
-.cmx-sidebar::-webkit-scrollbar-thumb {
-  background: #6366f1;
-  border-radius: 4px;
-  border: 2px solid #0f172a;
-}
-
-.cmx-table-wrap::-webkit-scrollbar-thumb:hover,
-.cmx-sidebar::-webkit-scrollbar-thumb:hover {
-  background: #06b6d4;
-}
-
-/* Pagination Control Bar */
+/* Data Table Pagination Bar - Matching Theme Colors & Single-Line Layout */
 .cmx-pagination-bar {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
   padding: 0.85rem 1.25rem;
-  background: #0f172a;
-  color: #f8fafc;
-  border-top: 1px solid #1e293b;
-  font-size: 0.85rem;
-  gap: 0.75rem;
-  border-radius: 0 0 16px 16px;
+  background: #FDFBF7;
+  border-top: 1px solid #EAE4DB;
+  border-radius: 0 0 6px 6px;
 }
 
 .cmx-pagination-info {
-  color: #94a3b8;
-  font-weight: 500;
+  font-size: 0.85rem;
+  color: #6E6762;
+  white-space: nowrap;
 }
 
 .cmx-pagination-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1.25rem;
+  flex-wrap: nowrap;
 }
 
-.cmx-page-btn {
-  background: #1e293b;
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.4rem 0.85rem;
-  border-radius: 8px;
+.cmx-per-page-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  color: #6E6762;
+  white-space: nowrap;
 }
 
-.cmx-page-btn:hover:not(:disabled) {
-  background: #4f46e5;
-  border-color: #6366f1;
-  color: #ffffff;
-}
-
-.cmx-page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.cmx-per-page-wrap label {
+  white-space: nowrap !important;
+  margin: 0 !important;
 }
 
 .cmx-page-size-select {
-  background: #1e293b;
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  height: 32px !important;
+  line-height: 30px !important;
+  padding: 0 1.6rem 0 0.6rem !important;
+  border: 1px solid #E2DCD5 !important;
+  border-radius: 4px !important;
+  background-color: #FFFFFF !important;
+  color: #2C2825 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  width: auto !important;
+  display: inline-block !important;
+}
+
+.cmx-page-btns {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cmx-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: #B37A4C;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.45rem 1.1rem;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(179, 122, 76, 0.15);
+}
+
+.cmx-page-btn:hover:not(:disabled) {
+  background: #9E6738;
+}
+
+.cmx-page-btn:disabled {
+  background: #E5DFC8;
+  color: #9C948B;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Sales Metrics View */
+.cmx-sales-wrap {
+  background: #FFFFFF;
+  border: 1px solid #EAE4DB;
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
+.cmx-sales-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.cmx-metric-card {
+  background: #FBF9F5;
+  border: 1px solid #EAE4DB;
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.cmx-metric-label {
+  font-size: 0.78rem;
+  color: #8C847C;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cmx-metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #B37A4C;
+  margin: 0.25rem 0;
+}
+
+.cmx-sales-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.cmx-sales-card {
+  background: #FDFBF7;
+  border: 1px solid #EAE4DB;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.cmx-sales-card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #2C2825;
+}
+
+.cmx-sales-card-vol {
+  font-size: 0.88rem;
+  color: #B37A4C;
+  margin-top: 0.4rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .cmx-locator-body {
+    flex-direction: column-reverse !important;
+    height: auto !important;
+  }
+
+  .cmx-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    height: 450px !important;
+    border-right: none !important;
+    border-top: 1px solid #EAE4DB !important;
+  }
+
+  .cmx-map-container {
+    height: 350px !important;
+    min-height: 300px !important;
+    width: 100% !important;
+  }
 }

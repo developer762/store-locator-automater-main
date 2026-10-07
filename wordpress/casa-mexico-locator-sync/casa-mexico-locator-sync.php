@@ -294,6 +294,13 @@ function cmx_locator_enqueue_shortcode_assets()
     cmx_locator_enqueue_config();
 
     wp_enqueue_style(
+        'font-awesome-6',
+        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+        array(),
+        '6.5.1'
+    );
+
+    wp_enqueue_style(
         'leaflet',
         'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
         array(),
@@ -311,7 +318,7 @@ function cmx_locator_enqueue_shortcode_assets()
     wp_enqueue_style(
         'cmx-locator-map',
         plugins_url('assets/locator-map.css', __FILE__),
-        array('leaflet'),
+        array('leaflet', 'font-awesome-6'),
         filemtime(plugin_dir_path(__FILE__) . 'assets/locator-map.css')
     );
 
@@ -331,51 +338,65 @@ function cmx_locator_shortcode($atts = array())
     ob_start();
     ?>
     <div class="cmx-locator-wrap">
-        <div class="cmx-locator-controls">
-            <div class="cmx-controls-top">
-                <div class="cmx-search-box">
-                    <svg class="cmx-search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                    <input type="text" id="cmx-search-input" class="cmx-search-input" placeholder="Search store name, city, address, product...">
-                </div>
-                <div class="cmx-view-toggle">
-                    <button type="button" id="cmx-view-map-btn" class="cmx-toggle-btn cmx-active" title="Map & Cards View">🗺️ Map View</button>
-                    <button type="button" id="cmx-view-sales-btn" class="cmx-toggle-btn" title="Sales Data Analytics">📊 Sales Data</button>
-                    <button type="button" id="cmx-view-table-btn" class="cmx-toggle-btn" title="Data Grid Table">📋 Data Table</button>
-                </div>
-            </div>
-            <div class="cmx-controls-bottom">
-                <div class="cmx-filter-group">
-                    <select id="cmx-tab-select" class="cmx-select cmx-select-tab">
-                        <option value="">All Sheet Tabs</option>
-                    </select>
-                    <select id="cmx-state-select" class="cmx-select cmx-select-state">
-                        <option value="">All States</option>
-                    </select>
-                    <select id="cmx-type-select" class="cmx-select cmx-select-type">
-                        <option value="">All Types</option>
-                        <option value="retail">Retail</option>
-                        <option value="bar-restaurant">Bar & Restaurant</option>
-                    </select>
-                    <select id="cmx-sort-select" class="cmx-select cmx-select-sort">
-                        <option value="name-asc">Sort: Name (A-Z)</option>
-                        <option value="name-desc">Sort: Name (Z-A)</option>
-                        <option value="cases-desc">Sort: Cases (High to Low)</option>
-                        <option value="city-asc">Sort: City (A-Z)</option>
-                    </select>
-                </div>
-                <div id="cmx-count-badge" class="cmx-count-badge">Loading stores...</div>
+        <!-- Header Row with Title and View Tabs flexed side-by-side -->
+        <div class="cmx-header-row">
+            <h2 class="cmx-page-title">Casa Mexico Plugin</h2>
+            <div class="cmx-view-toggle">
+                <button type="button" id="cmx-view-map-btn" class="cmx-toggle-btn cmx-active" title="Map View"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Store Locator</button>
+                <button type="button" id="cmx-view-sales-btn" class="cmx-toggle-btn" title="Sales Data Analytics"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Sales Data</button>
+                <button type="button" id="cmx-view-table-btn" class="cmx-toggle-btn" title="Data Grid Table"><i class="fa-solid fa-table-list" aria-hidden="true"></i> Data Table</button>
             </div>
         </div>
+
         <div id="cmx-split-view" class="cmx-locator-body">
-            <div class="cmx-map-container">
-                <div id="cmx-map-canvas"></div>
-            </div>
+            <!-- Left Sidebar Controls & Store Directory List -->
             <div class="cmx-sidebar">
-                <div id="cmx-sidebar-list">
+                <div class="cmx-sidebar-header">
+                    <div class="cmx-search-box">
+                        <i class="fa-solid fa-magnifying-glass cmx-search-icon" aria-hidden="true"></i>
+                        <input type="text" id="cmx-search-input" class="cmx-search-input" placeholder="Search by name, city, state or zip...">
+                    </div>
+                    
+                    <button type="button" id="cmx-use-location-btn" class="cmx-btn-location"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i> USE MY LOCATION</button>
+                    
+                    <div class="cmx-type-pills" role="group" aria-label="Premise type filters">
+                        <button type="button" class="cmx-type-pill active" data-type="">ALL</button>
+                        <button type="button" class="cmx-type-pill" data-type="retail">RETAIL</button>
+                        <button type="button" class="cmx-type-pill" data-type="bar-restaurant">BAR &amp; RESTAURANT</button>
+                    </div>
+
+                    <div class="cmx-filter-dropdowns">
+                        <select id="cmx-tab-select" class="cmx-select cmx-select-tab">
+                            <option value="">All Sheet Tabs</option>
+                        </select>
+                        <select id="cmx-state-select" class="cmx-select cmx-select-state">
+                            <option value="">All States</option>
+                        </select>
+                        <select id="cmx-sort-select" class="cmx-select cmx-select-sort">
+                            <option value="name-asc">Sort: Name (A-Z)</option>
+                            <option value="name-desc">Sort: Name (Z-A)</option>
+                            <option value="cases-desc">Sort: Cases (High to Low)</option>
+                            <option value="city-asc">Sort: City (A-Z)</option>
+                        </select>
+                    </div>
+
+                    <div id="cmx-nearest-banner" class="cmx-nearest-banner" style="display: none;"></div>
+
+                    <div id="cmx-count-badge" class="cmx-count-badge">SHOWING 0 OF 0 STORES</div>
+                </div>
+
+                <div id="cmx-sidebar-list" class="cmx-sidebar-list">
                     <div class="cmx-no-results">Loading Casa Mexico locations...</div>
                 </div>
             </div>
+
+            <!-- Right Side Interactive Leaflet Map -->
+            <div class="cmx-map-container">
+                <div id="cmx-map-canvas"></div>
+            </div>
         </div>
+
+        <!-- Sales Metrics Analytical View -->
         <div id="cmx-sales-view" class="cmx-sales-wrap" style="display: none;">
             <div class="cmx-sales-metrics">
                 <div class="cmx-metric-card">
@@ -391,11 +412,13 @@ function cmx_locator_shortcode($atts = array())
                 <div class="cmx-metric-card">
                     <div class="cmx-metric-label">Active Markets</div>
                     <div class="cmx-metric-value" id="cmx-sales-markets">-</div>
-                    <div class="cmx-metric-sub">States & regional territories</div>
+                    <div class="cmx-metric-sub">States &amp; regional territories</div>
                 </div>
             </div>
             <div id="cmx-sales-breakdown" class="cmx-sales-grid"></div>
         </div>
+
+        <!-- Tabular Data View -->
         <div id="cmx-table-view" class="cmx-table-wrap" style="display: none;">
             <table class="cmx-data-table">
                 <thead>
